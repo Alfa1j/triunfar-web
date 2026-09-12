@@ -28,4 +28,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-git add . && git commit -m "Conectar evento submit de app.js con Supabase" && git push origin main
