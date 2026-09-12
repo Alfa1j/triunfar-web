@@ -1,22 +1,31 @@
 async function guardarEstudiante(estudiante) {
   try {
     const client = window.supabaseClient || window.supabase;
-    const { data, error } = await client
-      .from('estudiantes')
-      .upsert([
-        {
-          id: estudiante.id || `estudiante_${Date.now()}`,
-          name: estudiante.nombre || estudiante.name,
-          document: estudiante.documento || estudiante.document,
-          program: estudiante.programa || estudiante.program || null
-        }
-      ]);
+    if (!client) {
+      alert("Error: El cliente de Supabase no se ha inicializado.");
+      return { success: false };
+    }
 
-    if (error) throw error;
+    const payload = {
+      id: estudiante.id || "est_" + Date.now(),
+      name: estudiante.nombre || estudiante.name || "Sin nombre",
+      document: estudiante.documento || estudiante.document || "0",
+      program: estudiante.programa || estudiante.program || null
+    };
+
+    const { data, error } = await client
+      .from("estudiantes")
+      .upsert([payload]);
+
+    if (error) {
+      alert("Error Supabase: " + error.message);
+      return { success: false, error };
+    }
+
+    alert("¡ÉXITO! Guardado correctamente en Supabase.");
     return { success: true, data };
   } catch (err) {
-    console.error('Error al guardar en Supabase:', err);
-    alert('Error al guardar en Supabase: ' + err.message);
+    alert("Error Inesperado: " + err.message);
     return { success: false, error: err };
   }
 }
