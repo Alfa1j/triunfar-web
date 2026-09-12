@@ -1,28 +1,36 @@
-import { supabase } from './supabase.js'
-
 // Obtener todos los estudiantes desde Supabase
-export async function obtenerEstudiantes() {
-  const { data, error } = await supabase
-    .from('estudiantes')
-    .select('*')
-  
-  if (error) {
-    console.error('Error al cargar estudiantes:', error)
-    return []
+async function obtenerEstudiantes() {
+  try {
+    const { data, error } = await supabase
+      .from('estudiantes')
+      .select('*');
+    
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Error al obtener estudiantes de Supabase:', err);
+    return [];
   }
-  return data
 }
 
-// Guardar un estudiante en Supabase
-export async function guardarEstudiante(estudiante) {
-  const { data, error } = await supabase
-    .from('estudiantes')
-    .insert([estudiante])
-    .select()
+// Guardar o actualizar un estudiante en Supabase
+async function guardarEstudiante(estudiante) {
+  try {
+    const { data, error } = await supabase
+      .from('estudiantes')
+      .upsert([
+        {
+          id: estudiante.id || `estudiante_${Date.now()}`,
+          name: estudiante.nombre || estudiante.name,
+          document: estudiante.documento || estudiante.document,
+          program: estudiante.programa || estudiante.program
+        }
+      ]);
 
-  if (error) {
-    console.error('Error al guardar estudiante:', error)
-    throw error
+    if (error) throw error;
+    return { success: true, data };
+  } catch (err) {
+    console.error('Error al guardar en Supabase:', err);
+    return { success: false, error: err.message };
   }
-  return data
 }
