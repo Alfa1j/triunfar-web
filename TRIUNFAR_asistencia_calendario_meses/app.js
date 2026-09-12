@@ -1,551 +1,135 @@
+// Importar funciones API creadas en api/estudiantes.js y api/asistencias.js
+import { obtenerEstudiantes, guardarEstudiante, eliminarEstudiante } from './api/estudiantes.js';
+import { obtenerAsistencias, guardarAsistencia } from './api/asistencias.js';
 
-const defaultUsers=[{id:'USR-ADMIN',name:'Euder Mejía',username:'admin',password:'1234',role:'Administrador',active:true}];
-const state={students:[],payments:JSON.parse(localStorage.getItem('triunfar_payments')||'[]'),expenses:JSON.parse(localStorage.getItem('triunfar_expenses')||'[]'),users:JSON.parse(localStorage.getItem('triunfar_users')||'null')||defaultUsers,audit:JSON.parse(localStorage.getItem('triunfar_audit')||'[]'),view:'dashboard',selected:null,currentUser:null,preinscriptions:JSON.parse(localStorage.getItem('triunfar_preinscriptions')||'[]'),disciplineActs:JSON.parse(localStorage.getItem('triunfar_discipline_acts')||'[]'),attendance:JSON.parse(localStorage.getItem('triunfar_attendance')||'{}'),branding:JSON.parse(localStorage.getItem('triunfar_branding')||'null')||{name:'INSTITUTO TÉCNICO TRIUNFAR',slogan:'Formamos tu futuro',logo:''}};
-state.users.forEach(u=>{if(u.role==='Cajero')u.role='Secretaria'});
-localStorage.setItem('triunfar_users',JSON.stringify(state.users));
-const DEFAULT_CATALOGS={
-  programs:['S. OCUPACIONAL','BELLEZA','PRIMERA INFANCIA','MERCADEO CURSO','VENTAS DE PRODUCTO Y SERVICIOS','FARMACIA','INGLES PARA NIÑOS','SISTEMAS AVANZADOS','ENFERMERIA TECNICOR','ASIS. ADMINISTRATIVO','ADMINISTRATIVO EN SALUD','ALMACEN Y BODEGAJE','MODISTERIA','MAQUINARIA PESADA','DISEÑO GRAFICO','INGLES ADULTO','INFORMATICA PARA NIÑOS','ESTILISTA INTEGRAL','GESTIÓN HUMANA (RECURSOS HUMANO)','UÑAS ACRILICAS','CEJAS Y PESTAÑAS','CAJA REGISTRADORA (2 MESES)','CAJA REGISTRADORA INTENSIVO','EXCEL','OFIMATICA','INGLES','BARBERIA','REP. Y PROGRAMACION DE PC','REP. Y PROGRAMACION DE CELULARES','DECORACION DE FIESTA','MAQUILLAJE','BACHILLERATO','PRIMARIA','BTO / TECNICO','LOGISTICA','MAQUILLAJE + CEJAS Y PESTAÑAS','CURSO SISTEMA (8 Y 9)','COLORIMETRIA','INSTALACION DE REDES','COSMETOLOGIA','MANICURE Y PEDICURE','COMERCIO EXTERIOR','CAJA R + ATENCION AL CLIENTE','SISTEMAS CURSO'],
-  days:['L - MA - MI - J - V','L - MA - MI - J','L - MA - MI','LUN - MART','MIER - JUEV','MART - MIER','JUEV - VIER','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO','DOMINGO','MI-JU-VI'],
-  schedules:['7:30 - 10:00 AM','7:45 - 10:00 AM','10:00 - 12:15 PM','1:45 - 3:45 PM','4:00 - 6:00 PM','6:00 - 8:00 PM','2:00 - 6:00','7 A 10','10 A 1','1 A 4','1:30 - 5:30 PM','4 A 7','2 A 5','12 A 3','1:30 - 5:00','10:00 - 12:30 PM','9 A 12','5:30 - 8:00','3 A 5','2 A 4 PM','8 A 12'],
-  secretaries:['Johana','Maria','Isabela','Key','Katy','Luz','Laura','Pabon','Jennifer','Daniela','Katherin'],
-  advisors:["OFICINA","MAXIMO","EDGARDO","ZUÑIGA","RAMOS","VILLANUEVA","MIGUEL","MARIO","BOLAÑO","MURIEL","JAIME GARCIA","ALONZO","LIZETH","EVELIN","GUSTAVO","OMAR","SALAZAR","ARELIS RENV","EVELIN RENV","ARELIS","JULIO FILL RENV","JULIO FILL","MARIO RENV","ZUÑIGA RENV","JAIME G RENV","RAMOS RENV","MURIEL RENV","GUSTAVO RENV","ALONZO RENV","BOLAÑO RENV","MAXIMO RENV","EDGARDO RENV","VILLANUEVA RENV","MIGUEL RENV","JAVIER BARROS","Katry","JASMIN","YANETH","EDWIN","JASMIN RENV","SALAZAR RENV","OFICINA J.O","EDWIN RENV","VICTOR","VICTOR RENV","JAVIER RENV","DAMIAN","DAMIAN RENV","ELIMELEC"],
-  durations:['4','8','12','16','48','72','76','80'],
-  salons:['Salón 1','Salón 2','Salón 3','Salón 4','Salón 5'],
-  concepts:['Matrícula','Mensualidad','Derecho a grado','Renovación','Carnet','Uniforme','Nivelación','Diplomado','Otro']
+// Catálogos por defecto para la aplicación
+const DEFAULT_CATALOGS = {
+  schedules: ['7:30 - 10:00 AM', '7:45 - 10:00 AM', '10:00 - 12:15 PM', '1:45 - 4:00 PM'],
+  secretaries: ['Johana', 'Maria', 'Isabela', 'Key', 'Katy', 'Luz', 'Laura', 'Paola'],
+  advisors: ['OFICINA', 'MAXIMO', 'EDGARDO', 'ZUÑIGA', 'RAMOS', 'VILLANUEVA', 'MEDINA'],
+  durations: ['4', '8', '12', '16', '48', '72', '76', '80'],
+  salons: ['Salón 1', 'Salón 2', 'Salón 3', 'Salón 4', 'Salón 5'],
+  concepts: ['Matrícula', 'Mensualidad', 'Derecho a grado', 'Renovación', 'Certificación']
 };
-const catalogs=JSON.parse(localStorage.getItem('triunfar_catalogs')||'null')||JSON.parse(JSON.stringify(DEFAULT_CATALOGS));
-if(!Array.isArray(catalogs.concepts)) catalogs.concepts=[...DEFAULT_CATALOGS.concepts];
-// Actualiza catálogos iniciales sin borrar opciones personalizadas posteriores.
-const OLD_ADVISORS=['Johana','Maria','Isabela','Key','Katy','Luz','Laura','Pabon','Jennifer','Daniela','Katherin'];
-const OLD_DURATIONS=['6 meses','1 año','2 años','3 meses','4 meses','5 meses','8 meses','10 meses','Otro'];
-if(Array.isArray(catalogs.advisors) && catalogs.advisors.length===OLD_ADVISORS.length && catalogs.advisors.every((v,i)=>v===OLD_ADVISORS[i])) catalogs.advisors=JSON.parse(JSON.stringify(DEFAULT_CATALOGS.advisors));
-if(Array.isArray(catalogs.durations) && catalogs.durations.length===OLD_DURATIONS.length && catalogs.durations.every((v,i)=>v===OLD_DURATIONS[i])) catalogs.durations=JSON.parse(JSON.stringify(DEFAULT_CATALOGS.durations));
-saveCatalogs();
-const DEFAULT_ESTABLISHED_PAYMENTS={
-  degree:[
-    {description:'GRADOS BTO',ceremony:'545.000 - 10% = 490.500',until:'15/Julio - 30/Nov',counter:'350.000 - 10% = 315.000',discountUntil:'15/Julio - 30/Nov'},
-    {description:'GRADOS TECNICOS',ceremony:'545.000 - 10% = 490.500',until:'15/Julio - 30/Nov',counter:'350.000 - 10% = 315.000',discountUntil:'15/Julio - 30/Nov'},
-    {description:'GRADOS CURSO (6 MESES)',ceremony:'334.000 - 10% = 300.000',until:'15/Julio - 30/Nov',counter:'200.000 - 10% = 180.000',discountUntil:'15/Julio - 30/Nov'},
-    {description:'GRADOS ENFER TECNICOR',ceremony:'890.000 - 10% = 800.000',until:'15/Julio - 30/Nov',counter:'720.000 - 10% = 648.000',discountUntil:'15/Julio - 30/Nov'},
-    {description:'GRADOS TECNICOS SALUD',ceremony:'700.000 - 15% = 595.000',until:'15/Julio - 30/Nov',counter:'500.000 - 15% = 425.000',discountUntil:'15/Julio - 30/Nov'},
-    {description:'GRADO PRIMARIA',ceremony:'350.000 - 11% = 310.000',until:'15/Julio - 30/Nov',counter:'280.000 - 10% = 210.000',discountUntil:'15/Julio - 30/Nov'},
-    {description:'GRADO DOBLE TITULACION',ceremony:'180.000',until:'15/Julio - 30/Nov',counter:'180.000',discountUntil:'15/Julio - 30/Nov'}
-  ],
-  uniforms:[
-    {description:'SUETER PROMOCION / 3XL',price:'65.000 / 70.000'},
-    {description:'SUETER INGLES, TECNICOS Y CURSOS',price:'60.000'},
-    {description:'UNIFORME BTO (NO PROMO)',price:'60.000'},
-    {description:'UNIFORMES ANTIFLUIDOS / COSMETOLOGIA',price:'112.000 / 115.000'},
-    {description:'"CAMISA" ADMINISTRATIVOS',price:'80.000'},
-    {description:'UNIF ADMINIST (Camisa + Pantalon)',price:'180.000'},
-    {description:'CAMISA ALMACEN Y BODEG',price:'80.000'},
-    {description:'SEDE S. LABORAL',price:'80.000'},
-    {description:'CAMISA ANTIFLUIDA',price:'65.000'},
-    {description:'HOMOLOGACION SALUD',price:'250.000 x semestre'},
-    {description:'HOMOLOGACION OTROS PROGRAMAS',price:'180.000 x semestre'},
-    {description:'ICFES PARTICULAR ORDINARIA',price:''},
-    {description:'ICFES PARTICULAR EXTRAORDINARIA',price:''}
-  ],
-  payments:[
-    {description:'COMBO PRE-ICFES + SIMULACRO',price:'300.000 PAGO INMEDIATO',alternative:'350.000 PAGO EN 5 CUOTAS'},
-    {description:'RENOVACION MATRICULA BTO / TECNICOS',price:'40.000',alternative:'35.000'},
-    {description:'DUPLICADO DIPLOMA / DUPLICADO ACTA DE GRADO',price:'80.000',alternative:'35.000'},
-    {description:'TARJETA DE PAGO PEQUEÑA / GRANDE',price:'5.000 / 10.000',alternative:''},
-    {description:'CONSTANCIA / CERTIFICADO DE NOTAS',price:'13.000 / 16.000',alternative:''},
-    {description:'HOMOLOGACION BTO',price:'70.000',alternative:''},
-    {description:'CARNET + SEGURO ESTUDIANTIL',price:'20.000',alternative:''},
-    {description:'CERTIFICADO DE CURSOS CORTOS (1 a 3 Meses)',price:'80.000',alternative:''},
-    {description:'CERTIFICADO CURSO CORTO 8B',price:'',alternative:''},
-    {description:'ARL NIVEL 1 (Asis Adm / Primera inf)',price:'26.700',alternative:'80.000 (X3 MESES)'},
-    {description:'ARL NIVEL 2',price:'38.000',alternative:''},
-    {description:'ARL NIVEL 3 + POLIZA ENFERMERIA',price:'55.000 (Mensual)',alternative:'450.000 (POLIZA + ARL 6 meses)'}
-  ]
+
+// Estado global de la aplicación
+let state = {
+  estudiantes: [],
+  asistencias: [],
+  catalogs: DEFAULT_CATALOGS,
+  cargando: true
 };
-let establishedPayments=JSON.parse(localStorage.getItem('triunfar_established_payments')||'null')||JSON.parse(JSON.stringify(DEFAULT_ESTABLISHED_PAYMENTS));
-function saveEstablishedPayments(){localStorage.setItem('triunfar_established_payments',JSON.stringify(establishedPayments))}
-const customFields=JSON.parse(localStorage.getItem('triunfar_custom_student_fields')||'[]');
-const DEFAULT_INVOICE_FIELDS=[
-  {id:'student',name:'Estudiante',enabled:true},{id:'program',name:'Programa',enabled:true},{id:'concept',name:'Concepto',enabled:true},{id:'detail',name:'Detalle / período',enabled:true},{id:'originalTotal',name:'Valor de la cuenta',enabled:true},{id:'discount',name:'Descuento / promoción',enabled:true},{id:'discountReason',name:'Motivo del descuento',enabled:true},{id:'netTotal',name:'Valor después del descuento',enabled:true},{id:'amount',name:'Pago realizado',enabled:true},{id:'paid',name:'Total abonado a la cuenta',enabled:true},{id:'balance',name:'Saldo pendiente',enabled:true},{id:'paymentMethod',name:'Forma de pago',enabled:true},{id:'cash',name:'Efectivo',enabled:true},{id:'transfer',name:'Transferencia',enabled:true},{id:'receivedCash',name:'Dinero recibido en efectivo',enabled:true},{id:'change',name:'Vuelto',enabled:true},{id:'secretary',name:'Secretaria que recibió',enabled:true},{id:'date',name:'Fecha',enabled:true},{id:'totalProgram',name:'Total del programa',enabled:true},{id:'monthlyPaid',name:'Pago total de mensualidades',enabled:true},{id:'duration',name:'Duración del programa',enabled:true},{id:'weeksRemaining',name:'Semanas restantes',enabled:true}
-];
-const invoiceFields=JSON.parse(localStorage.getItem('triunfar_invoice_fields')||'null')||JSON.parse(JSON.stringify(DEFAULT_INVOICE_FIELDS));
-function saveInvoiceFields(){localStorage.setItem('triunfar_invoice_fields',JSON.stringify(invoiceFields))}
-if(!Array.isArray(invoiceFields)||!invoiceFields.length){invoiceFields.splice(0,invoiceFields.length,...JSON.parse(JSON.stringify(DEFAULT_INVOICE_FIELDS)));saveInvoiceFields()}
-else { DEFAULT_INVOICE_FIELDS.forEach(df=>{if(!invoiceFields.some(f=>f.id===df.id)) invoiceFields.push({...df})}); saveInvoiceFields() }
-function saveCatalogs(){localStorage.setItem('triunfar_catalogs',JSON.stringify(catalogs))}
-function saveCustomFields(){localStorage.setItem('triunfar_custom_student_fields',JSON.stringify(customFields))}
-function catalogOptions(key,current=''){return optionList(catalogs[key]||[],current)}
 
-function currentRole(){const r=state.currentUser?.role||'Administrador';return r==='Cajero'?'Secretaria':r}
-function isStaff(){return isAdmin()||currentRole()==='Secretaria'}
-function isAdmin(){return currentRole()==='Administrador'}
-function canEditPayments(){return isAdmin()||currentRole()==='Secretaria'}
-function canDeletePayments(){return isAdmin()}
-function canManageUsers(){return isAdmin()}
-function audit(action,detail){state.audit.push({date:new Date().toISOString(),user:state.currentUser?.name||'Sistema',action,detail});if(state.audit.length>500)state.audit=state.audit.slice(-500);localStorage.setItem('triunfar_audit',JSON.stringify(state.audit));localStorage.setItem('triunfar_discipline_acts',JSON.stringify(state.disciplineActs));localStorage.setItem('triunfar_branding',JSON.stringify(state.branding));localStorage.setItem('triunfar_attendance',JSON.stringify(state.attendance))}
-function saveUsers(){localStorage.setItem('triunfar_users',JSON.stringify(state.users))}
-const $=s=>document.querySelector(s), fmt=n=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(n)||0);
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
-function save(){localStorage.setItem('triunfar_payments',JSON.stringify(state.payments));localStorage.setItem('triunfar_expenses',JSON.stringify(state.expenses));localStorage.setItem('triunfar_users',JSON.stringify(state.users));localStorage.setItem('triunfar_audit',JSON.stringify(state.audit));localStorage.setItem('triunfar_discipline_acts',JSON.stringify(state.disciplineActs));localStorage.setItem('triunfar_branding',JSON.stringify(state.branding));localStorage.setItem('triunfar_attendance',JSON.stringify(state.attendance))}
-async function init(){state.students=JSON.parse(localStorage.getItem('triunfar_students')||'null')||await fetch('students_seed.json').then(r=>r.json());
- const saved=JSON.parse(sessionStorage.getItem('triunfar_session')||'null'); if(saved) state.currentUser=saved; render(); bindNav(); if(!state.currentUser) openLogin(); else updateUserHeader();}
-function applyRoleNavigation(){
-  const role=currentRole();
-  document.querySelectorAll('.nav').forEach(b=>{const v=b.dataset.view;let allowed=true;if(role==='Asesor')allowed=(v==='preinscription');else if(role==='Docente')allowed=(v==='salonFilter');b.style.display=allowed?'flex':'none'});
-  if(role==='Asesor' && state.view!=='preinscription') state.view='preinscription';
-  if(role==='Docente' && state.view!=='salonFilter') state.view='salonFilter';
-}
-function updateUserHeader(){applyRoleNavigation();const name=state.currentUser?.name||'Administrador', role=state.currentUser?.role||'Administrador';const a=document.querySelector('.avatar');if(a)a.textContent=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();const boxes=document.querySelectorAll('.top-actions div');if(boxes.length){const b=boxes[boxes.length-1];b.innerHTML=`<b>${esc(name)}</b><small>${esc(role)}</small>`}const lb=document.getElementById('logoutBtn');if(lb)lb.style.display=state.currentUser?'inline-flex':'none';applyBranding()}
-function openLogin(){openModal(`<div class="modal-head"><div><div class="profile-meta">TRIUNFAR</div><h2>Ingreso al sistema</h2></div></div><div class="form-grid"><label>Usuario<input id="login_user" autocomplete="username"></label><label>Contraseña<input type="password" id="login_pass" autocomplete="current-password"></label></div><div class="form-actions"><button class="primary" onclick="login()">Ingresar</button></div><p class="profile-meta" style="margin-top:14px">Administrador inicial: <b>admin</b> / <b>1234</b>. Cámbialo desde Usuarios.</p>`)}
-function login(){const u=$('#login_user').value.trim(),p=$('#login_pass').value;const found=state.users.find(x=>x.username===u&&x.password===p&&x.active);if(!found){toast('Usuario o contraseña incorrectos');return}state.currentUser={id:found.id,name:found.name,username:found.username,role:found.role==='Cajero'?'Secretaria':found.role};sessionStorage.setItem('triunfar_session',JSON.stringify(state.currentUser));if(state.currentUser.role==='Asesor')state.view='preinscription';audit('Inicio de sesión','Ingreso al sistema');closeModal();updateUserHeader();render()}
-function logout(){audit('Cierre de sesión','Salida del sistema');sessionStorage.removeItem('triunfar_session');state.currentUser=null;openLogin()}
+/**
+ * Inicializar la aplicación al cargar la página
+ */
+async function initApp() {
+  console.log('Cargando datos desde Supabase...');
+  state.cargando = true;
 
-function applyBranding(){
-  const b=state.branding||{}; const name=b.name||'INSTITUTO TÉCNICO TRIUNFAR';
-  document.title=`${name} | Sistema Administrativo`;
-  const brand=document.querySelector('.brand');
-  if(brand) brand.innerHTML=`${b.logo?`<img class="brand-logo" src="${b.logo}" alt="Logo">`:'<div class="shield">◆</div>'}<div><small>INSTITUTO TÉCNICO</small><strong>${esc(name.replace(/^INSTITUTO TÉCNICO\s*/i,''))}</strong><em>${esc(b.slogan||'Formamos tu futuro')}</em></div>`;
-}
-function saveBranding(){localStorage.setItem('triunfar_branding',JSON.stringify(state.branding));localStorage.setItem('triunfar_attendance',JSON.stringify(state.attendance))}
-function saveBrandName(){if(!isAdmin())return;const name=($('#brand_name')?.value||'').trim();const slogan=($('#brand_slogan')?.value||'').trim();if(!name){toast('Escribe el nombre de la institución');return}state.branding.name=name;state.branding.slogan=slogan||'Formamos tu futuro';saveBranding();audit('Actualizó identidad institucional',name);applyBranding();toast('Nombre institucional actualizado');settings($('#content'))}
-function handleLogoUpload(input){if(!isAdmin()||!input.files?.[0])return;const file=input.files[0];if(!file.type.startsWith('image/')){toast('Selecciona una imagen válida');input.value='';return}if(file.size>2*1024*1024){toast('El logo debe pesar máximo 2 MB');input.value='';return}const reader=new FileReader();reader.onload=()=>{state.branding.logo=reader.result;saveBranding();audit('Actualizó logo institucional',file.name);applyBranding();toast('Logo actualizado');settings($('#content'))};reader.readAsDataURL(file)}
-function removeLogo(){if(!isAdmin())return;state.branding.logo='';saveBranding();audit('Eliminó logo institucional','');applyBranding();settings($('#content'));toast('Logo eliminado')}
-
-function bindNav(){document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{state.view=b.dataset.view;document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');render();if(window.innerWidth<=650) $('.sidebar')?.classList.remove('open')});$('#menuBtn').onclick=()=>$('.sidebar').classList.toggle('open');$('#backupBtn').onclick=backup;document.addEventListener('click',e=>{if(window.innerWidth<=650){const sb=$('.sidebar'),menu=$('#menuBtn');if(sb?.classList.contains('open')&&!sb.contains(e.target)&&e.target!==menu){sb.classList.remove('open')}}})}
-function setHead(title,sub){$('#pageTitle').textContent=title;$('#pageSub').textContent=sub}
-function render(){if(!state.currentUser)return;updateUserHeader();if(currentRole()==='Asesor'&&state.view!=='preinscription')state.view='preinscription';if(currentRole()==='Docente'&&state.view!=='salonFilter')state.view='salonFilter';const c=$('#content');c.innerHTML=''; if(state.view==='dashboard') dashboard(c); else if(state.view==='students') students(c); else if(state.view==='payments') payments(c); else if(state.view==='salonFilter') salonFilter(c); else if(state.view==='attendance') attendance(c); else if(state.view==='expenses') expenses(c); else if(state.view==='advisors') advisors(c); else if(state.view==='preinscription') preinscription(c); else if(state.view==='reports') reports(c); else if(state.view==='discipline') discipline(c); else generic(c,state.view)}
-function kpi(icon,label,value,small=''){return `<div class="card kpi"><div class="kicon">${icon}</div><div><label>${label}</label><b>${value}</b><small>${small}</small></div></div>`}
-function dashboard(c){setHead('Dashboard','Resumen general del Instituto Técnico Triunfar');const paid=state.payments.reduce((a,p)=>a+p.amount,0);const obligations=state.students.reduce((a,s)=>a+(Number(s.valorSemanal)||200000),0);const pending=Math.max(0,obligations-paid);c.innerHTML=`<div class="grid kpis">${kpi('♙','Estudiantes activos',state.students.length,'Base migrada del Excel')}${kpi('✚','Nuevas matrículas',Math.min(state.students.length,86),'Registro disponible')}${kpi('＄','Recaudo registrado',fmt(paid),'Pagos registrados en la app')}${kpi('⚠','Pagos pendientes',fmt(pending),'Estimado inicial')}${kpi('▥','Utilidad estimada',fmt(Math.max(0,paid-state.expenses.reduce((a,e)=>a+e.amount,0))),'Ingresos - gastos')}</div>
-<div class="grid two"><div class="card"><h2>Actividad financiera</h2><div class="chart">${[35,52,43,70,65,88,100].map((h,i)=>`<div class="bar" style="height:${h}%"><span>${['Ene','Feb','Mar','Abr','May','Jun','Jul'][i]}</span></div>`).join('')}</div></div>
-<div class="card"><h2>Distribución por tipo</h2><div class="progress">${progressByCategory()}</div></div></div>
-<div class="grid three"><div class="card"><h3>Accesos rápidos</h3><div class="quick"><button onclick="openStudentForm()">＋<br>Nuevo estudiante</button><button onclick="openPaymentForm()">＄<br>Registrar pago</button><button onclick="showView('students')">⌕<br>Buscar estudiante</button><button onclick="showView('expenses')">◔<br>Registrar gasto</button><button onclick="showView('reports')">▥<br>Reportes</button><button onclick="backup()">☁<br>Crear copia</button></div></div>
-<div class="card"><h3>Últimos pagos</h3><div class="list">${state.payments.slice(-6).reverse().map(p=>`<div class="list-item"><span>${esc(studentName(p.studentId))}<br><small>${esc(p.concept)}</small></span><b class="positive">${fmt(p.amount)}</b></div>`).join('')||'<div class="empty">Aún no hay pagos registrados.</div>'}</div></div>
-<div class="card"><h3>⚠ Alertas de asistencia</h3><div class="list">${state.students.filter(s=>['absent','call'].includes(attendanceInfo(s).key)).slice(0,8).map(s=>`<div class="list-item"><span><b>${esc(s.name)}</b><br><small>${esc(s.program||'')} · ${esc(s.salon||'')}</small></span>${attendanceBadge(s)}</div>`).join('')||'<div class="empty">No hay alertas de asistencia.</div>'}</div></div><div class="card"><h3>Resumen del proyecto</h3><div class="list"><div class="list-item"><span>Estudiantes importados</span><b>${state.students.length}</b></div><div class="list-item"><span>Hojas originales identificadas</span><b>54</b></div><div class="list-item"><span>Módulos preparados</span><b>10</b></div><div class="list-item"><span>Modo</span><b>Prototipo web</b></div></div></div></div>`}
-function progressByCategory(){let m={};state.students.forEach(s=>{const k=s.program||s.programBto||'Sin programa';m[k]=(m[k]||0)+1});return Object.entries(m).map(([k,v])=>`<div class="prog-row"><span>${esc(k)}</span><div class="track"><div class="fill" style="width:${Math.round(v/state.students.length*100)}%"></div></div><b>${v}</b></div>`).join('')||'<div class="empty">Sin datos</div>'}
-function attendanceInfo(s){
-  if(s.status==='Retirado') return {key:'retired',label:'Retirado',days:0};
-  const raw=s.lastAttendance||s.fechaIngresoSistema||s.fechaIngreso||''; const d=new Date(String(raw).slice(0,10)+'T12:00:00');
-  if(Number.isNaN(d.getTime())) return {key:'active',label:'Activo',days:0};
-  const days=Math.max(0,Math.floor((Date.now()-d.getTime())/86400000));
-  if(days>60) return {key:'call',label:'Llamar · ausente +2 meses',days};
-  if(days>30) return {key:'absent',label:'Ausente · 1 mes',days};
-  return {key:'active',label:'Activo',days};
-}
-function attendanceBadge(s){const a=attendanceInfo(s);return `<span class="badge attendance-${a.key}">${esc(a.label)}</span>`}
-function attendanceDate(){return $('#attendanceDate')?.value||new Date().toISOString().slice(0,10)}
-function setAttendance(id,status,date=attendanceDate()){const s=state.students.find(x=>x.id===id);if(!s)return;if(!state.attendance[id])state.attendance[id]={};state.attendance[id][date]=status;if(status==='present'){s.lastAttendance=date;if(s.status!=='Retirado')s.status='Activo'}localStorage.setItem('triunfar_attendance',JSON.stringify(state.attendance));localStorage.setItem('triunfar_students',JSON.stringify(state.students));audit(status==='present'?'Registró asistencia':'Registró inasistencia',`${s.name} · ${date}`);toast(`${status==='present'?'Asistencia':'Inasistencia'} registrada para ${s.name}`);renderProfile();if(state.view==='attendance')renderAttendanceRows()}
-function markAttendance(id){setAttendance(id,'present')}
-function markAbsence(id){setAttendance(id,'absent')}
-function attendanceFor(id,date){return state.attendance?.[id]?.[date]||''}
-function attendanceCalendarHtml(id,ym=''){const base=ym&&/^\d{4}-\d{2}$/.test(ym)?ym:new Date().toISOString().slice(0,7);const [year,month1]=base.split('-').map(Number),month=month1-1,first=new Date(year,month,1),days=new Date(year,month+1,0).getDate(),names=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];let present=0,absent=0;let html=names.map(n=>`<div class="cal-head">${n}</div>`).join('');for(let i=0;i<first.getDay();i++)html+='<div class="cal-day empty-day"></div>';for(let day=1;day<=days;day++){const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,st=attendanceFor(id,ds);if(st==='present')present++;if(st==='absent')absent++;html+=`<div class="cal-day ${st==='present'?'cal-present':st==='absent'?'cal-absent':''}"><b>${day}</b>${st==='present'?'<span>✓</span>':st==='absent'?'<span>×</span>':''}</div>`}const label=new Date(year,month,1).toLocaleDateString('es-CO',{month:'long',year:'numeric'});const prev=new Date(year,month-1,1).toISOString().slice(0,7),next=new Date(year,month+1,1).toISOString().slice(0,7);return `<div class="attendance-calendar compact-calendar"><div class="cal-toolbar"><button type="button" class="secondary cal-nav" onclick="changeProfileAttendanceMonth('${id}','${prev}')">‹</button><div><div class="cal-title">${label}</div><small>${present} asistencias · ${absent} inasistencias</small></div><button type="button" class="secondary cal-nav" onclick="changeProfileAttendanceMonth('${id}','${next}')">›</button></div><div class="cal-select-row"><label>Consultar otro mes<input type="month" value="${base}" onchange="changeProfileAttendanceMonth('${id}',this.value)"></label></div><div class="cal-grid">${html}</div><div class="cal-legend"><span>🟢 Asistencia</span><span>🔴 Inasistencia</span><span>⚪ Sin registro</span></div></div>`}
-function changeProfileAttendanceMonth(id,ym){state.profileAttendanceMonth=ym;renderProfile()}
-function attendanceCalendarModalHtml(id,ym=''){const base=ym&&/^\d{4}-\d{2}$/.test(ym)?ym:new Date().toISOString().slice(0,7);const [year,month1]=base.split('-').map(Number),month=month1-1,first=new Date(year,month,1),days=new Date(year,month+1,0).getDate(),names=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];let present=0,absent=0,html=names.map(n=>`<div class="cal-head">${n}</div>`).join('');for(let i=0;i<first.getDay();i++)html+='<div class="cal-day empty-day"></div>';for(let day=1;day<=days;day++){const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,st=attendanceFor(id,ds);if(st==='present')present++;if(st==='absent')absent++;html+=`<div class="cal-day ${st==='present'?'cal-present':st==='absent'?'cal-absent':''}"><b>${day}</b>${st==='present'?'<span>✓</span>':st==='absent'?'<span>×</span>':''}</div>`}const label=new Date(year,month,1).toLocaleDateString('es-CO',{month:'long',year:'numeric'}),prev=new Date(year,month-1,1).toISOString().slice(0,7),next=new Date(year,month+1,1).toISOString().slice(0,7);return `<div class="attendance-calendar"><div class="cal-toolbar"><button type="button" class="secondary cal-nav" onclick="showAttendanceCalendar('${id}','${prev}')">‹</button><div><div class="cal-title">${label}</div><small>${present} asistencias · ${absent} inasistencias</small></div><button type="button" class="secondary cal-nav" onclick="showAttendanceCalendar('${id}','${next}')">›</button></div><div class="cal-select-row"><label>Consultar otro mes<input type="month" value="${base}" onchange="showAttendanceCalendar('${id}',this.value)"></label></div><div class="cal-grid">${html}</div><div class="cal-legend"><span>🟢 Asistencia</span><span>🔴 Inasistencia</span><span>⚪ Sin registro</span></div></div>`}
-function showAttendanceCalendar(id,ym=''){const s=state.students.find(x=>x.id===id);if(!s)return;openModal(`<div class="modal-head"><div><div class="profile-meta">Historial de asistencia</div><h2>${esc(s.name)}</h2><small>${esc(s.program||'')} · ${esc(s.salon||'')}</small></div><button class="close" onclick="closeModal()">×</button></div>${attendanceCalendarModalHtml(id,ym)}`)}
-function setStudentRetired(id){const s=state.students.find(x=>x.id===id);if(!s)return;const reason=prompt(`Motivo del retiro de ${s.name}:`);if(reason===null||!reason.trim())return;s.status='Retirado';s.retiroMotivo=reason.trim();s.fechaRetiro=new Date().toISOString().slice(0,10);localStorage.setItem('triunfar_students',JSON.stringify(state.students));audit('Marcó estudiante como retirado',`${s.name} · ${reason.trim()}`);toast('Estudiante marcado como retirado');renderProfile();render()}
-
-function students(c){setHead('Estudiantes','Gestión y control de la comunidad estudiantil');c.innerHTML=`<div class="grid student-layout"><div><div class="grid kpis" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px">${kpi('♙','Total',state.students.length)}${kpi('✓','Activos',state.students.filter(s=>attendanceInfo(s).key==='active').length)}${kpi('⚠','Requieren atención',state.students.filter(s=>['absent','call'].includes(attendanceInfo(s).key)).length)}</div><div class="card"><div class="toolbar"><input class="search" id="studentSearch" placeholder="Buscar por nombre, documento, programa, teléfono o asesor..."><select class="select" id="programFilter"><option value="">Todos los programas</option>${[...new Set(state.students.map(s=>s.program).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join('')}</select><button class="primary" onclick="openStudentForm()">＋ Nuevo estudiante</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Estudiante</th><th>Documento</th><th>Programa</th><th>Tipo</th><th>Estado</th><th></th></tr></thead><tbody id="studentRows"></tbody></table></div></div></div><div class="card" id="profile"><div class="empty">Selecciona un estudiante para ver su ficha completa.</div></div></div>`;
-const renderRows=()=>{let q=$('#studentSearch').value.toLowerCase(),p=$('#programFilter').value;let rows=state.students.filter(s=>`${s.name} ${s.document} ${s.program} ${s.phone} ${s.asesor} ${s.direccionBarrio}`.toLowerCase().includes(q)&&(!p||s.program===p)).slice(0,80);$('#studentRows').innerHTML=rows.map(s=>`<tr><td><b>${esc(s.name)}</b><br><small>${esc(s.birthplace)}</small></td><td>${esc(s.document)}</td><td>${esc(s.program)}</td><td>${esc(s.tipoEstudiantes||'—')}</td><td>${attendanceBadge(s)}</td><td><button class="row-btn" onclick="selectStudent('${s.id}')">Ver</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">No se encontraron estudiantes.</td></tr>'};$('#studentSearch').oninput=renderRows;$('#programFilter').onchange=renderRows;renderRows();if(state.selected&&state.students.some(x=>x.id===state.selected.id))renderProfile()}
-function selectStudent(id){state.selected=state.students.find(s=>s.id===id);renderProfile();$('#profile')?.classList.add('profile-open')}
-function closeStudentProfile(){state.selected=null;const p=$('#profile');if(p)p.innerHTML='<div class="empty">Selecciona un estudiante para ver su ficha completa.</div>';p?.classList.remove('profile-open')}
-function renderProfile(){const s=state.selected;if(!s)return;const studentPayments=state.payments.filter(p=>p.studentId===s.id);const paid=studentPayments.reduce((a,p)=>a+(Number(p.amount)||0),0);const obligations=getObligations().filter(o=>o.studentId===s.id);const grouped={};obligations.forEach(o=>{const key=o.concept||'Otro';if(!grouped[key])grouped[key]=[];grouped[key].push(o)});
-const weekly=Number(s.valorSemanal)||0;const duration=parseFloat(String(s.duracionPrograma||'').replace(',','.').match(/-?\d+(?:\.\d+)?/)?.[0]||0);const totalProgram=weekly*duration;const monthlyObs=obligations.filter(o=>String(o.concept||'').toLowerCase().trim()==='mensualidad');const monthlyPaid=monthlyObs.reduce((a,o)=>a+(Number(o.covered??o.paid)||0),0);const debt=Math.max(0,totalProgram-monthlyPaid);const weeksUsed=weekly>0?monthlyPaid/weekly:0;const weeksRemaining=Math.max(0,duration-weeksUsed);
-const movementHtml=Object.entries(grouped).map(([concept,accounts])=>`<div class="card" style="margin-bottom:12px;background:#fff"><div class="toolbar" style="margin-bottom:8px"><h4 style="margin:0;flex:1">${esc(concept)}</h4><b>${fmt(accounts.reduce((a,o)=>a+(Number(o.paid)||0),0))} pagado</b></div>${accounts.map(o=>`<div style="padding:10px 0;border-top:1px solid #e5eaf1"><div class="list-item"><span><b>${esc(o.detail||'Cuenta de '+concept)}</b><br><small>Total: ${fmt(o.total)} · Aplicado: ${fmt(o.covered??o.paid)} · <strong>Debe: ${fmt(o.balance)}</strong></small></span><span class="badge ${o.status==='Pagada'?'active-b':'pending-b'}">${o.status}</span></div><div style="margin-left:16px">${o.payments.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(p=>`<div class="list-item"><span>↳ ${esc(p.date)} · ${esc(p.receipt||'Sin recibo')}</span><span><b class="positive">${fmt(p.amount)}</b> <button class="row-btn" onclick="showReceiptForPayment('${p.id}')">▧ Recibo</button></span></div>`).join('')}</div></div>`).join('')}</div>`).join('');
-$('#profile').innerHTML=`<div class="profile-close-mobile"><button class="close" onclick="closeStudentProfile()">×</button></div><div class="profile-meta">Ficha del estudiante</div><h2 class="profile-name">${esc(s.name)} ${attendanceBadge(s)}</h2><p class="profile-meta">${esc(s.programBto||'')} · ${esc(s.program||'Sin programa')}</p><div class="detail-grid">
-<div><span>Programa / BTO</span>${esc(s.programBto||'—')}</div><div><span>Programa</span>${esc(s.program||'—')}</div><div><span>Tipo de documento</span>${esc(s.type||'—')}</div><div><span>Número de identificación</span>${esc(s.document||'—')}</div><div><span>Lugar de expedición</span>${esc(s.expedition||'—')}</div><div><span>Fecha de nacimiento</span>${esc(s.birthdate||'—')}</div><div><span>Teléfonos</span>${esc(s.phone||'—')}</div><div><span>Ingresado por</span>${esc(s.ingresadoPor||'—')}</div><div><span>Nota de llamada / acuerdo semanal</span>${esc(s.notaLlamada||'—')}</div><div><span>Días</span>${esc(s.dias||'—')}</div><div><span>Horarios</span>${esc(s.horarios||'—')}</div><div><span>Asesor</span>${esc(s.asesor||'—')}</div><div><span>Valor semanal</span>${weekly?fmt(weekly):'—'}</div><div><span>Duración del programa</span>${esc(s.duracionPrograma||'—')}</div><div><span>Total del programa</span>${totalProgram?fmt(totalProgram):'—'}</div><div><span>Debe</span><b class="${debt?'negative':'positive'}">${fmt(debt)}</b></div><div><span>Pago total de mensualidades</span><b class="positive">${fmt(monthlyPaid)}</b></div><div><span>Semanas restantes</span>${weekly&&duration?weeksRemaining.toLocaleString('es-CO',{maximumFractionDigits:2}):'—'}</div><div><span>Tipo de estudiantes</span>${esc(s.tipoEstudiantes||'—')}</div><div><span>Dirección / Barrio</span>${esc(s.direccionBarrio||'—')}</div><div><span>Fecha ingreso al sistema</span>${esc(s.fechaIngresoSistema||'—')}</div><div><span>Nombre del acudiente</span>${esc(s.acudienteNombre||'—')}</div><div><span>Teléfono del acudiente</span>${esc(s.acudienteTelefono||'—')}</div><div><span>Salón</span>${esc(s.salon||'—')}</div><div><span>Última asistencia</span>${esc(s.lastAttendance||'—')}</div><div><span>Estado de asistencia</span>${attendanceBadge(s)}</div><div><span>Lugar de nacimiento</span>${esc(s.birthplace||'—')}</div><div><span>Género</span>${esc(s.gender||'—')}</div>${customFields.map(f=>`<div><span>${esc(f.name)}</span>${esc((s.customFields||{})[f.id]||'—')}</div>`).join('')}<div><span>Total pagado en app</span><b class="positive">${fmt(paid)}</b></div></div>${attendanceCalendarHtml(s.id,state.profileAttendanceMonth)}<div class="action-row"><button class="primary" onclick="openPaymentForm('${s.id}')">＄ Registrar pago</button><button class="secondary" onclick="openStudentForm(state.selected)">✎ Editar</button><button class="secondary" onclick="receipt('${s.id}')">▧ Recibo</button><button class="secondary" onclick="markAttendance('${s.id}')">✓ Marcar asistencia hoy</button>${s.status!=='Retirado'?`<button class="secondary" onclick="setStudentRetired('${s.id}')">⛔ Retirar</button>`:''}</div><div style="margin-top:16px"><h3>Movimientos organizados por concepto</h3>${movementHtml||'<div class="empty">Sin pagos registrados todavía.</div>'}</div>`} 
-
-function optionList(values,current=''){
-  const vals=[...new Set([current,...values].filter(Boolean))];
-  return vals.map(v=>`<option value="${esc(v)}" ${v===current?'selected':''}>${esc(v)}</option>`).join('');
-}
-function openStudentForm(existing=null){
-  const today=new Date().toISOString().slice(0,10);
-  const s=existing||{name:'',phone:'',programBto:'',program:'',type:'C.C.',document:'',expedition:'',birthdate:'',ingresadoPor:'',notaLlamada:'',dias:'',horarios:'',asesor:'',valorSemanal:'',duracionPrograma:'',tipoEstudiantes:'',direccionBarrio:'',fechaIngresoSistema:today,birthplace:'',gender:'',status:'Activo',acudienteNombre:'',acudienteTelefono:'',salon:'',lastAttendance:today,customFields:{}};
-  const custom=s.customFields||{};
-  const customHtml=customFields.map(f=>`<label>${esc(f.name)}<input id="f_custom_${esc(f.id)}" value="${esc(custom[f.id]||'')}" placeholder="${esc(f.placeholder||'')}"></label>`).join('');
-  openModal(`<div class="modal-head"><div><div class="profile-meta">Datos del estudiante</div><h2>${existing?'Editar estudiante':'Nuevo estudiante'}</h2></div><button class="close" onclick="closeModal()">×</button></div>
-  <div class="form-grid">
-    <label>Nombre completo<input id="f_name" value="${esc(s.name)}" required></label>
-    <label>Teléfonos<input id="f_phone" value="${esc(s.phone)}" placeholder="Ej. 3001234567"></label>
-    <label>Programa / BTO<select id="f_programBto">${optionList(['Técnico','Bachillerato','Curso'],s.programBto)}</select></label>
-    <label>Programa<select id="f_program"><option value="">Seleccione</option>${catalogOptions('programs',s.program)}</select></label>
-    <label>Tipo de documento<select id="f_type">${optionList(['C.C.','T.I.','C.E.','P.P.','P.P.T.'],s.type||'C.C.')}</select></label>
-    <label>Número de identificación<input id="f_doc" value="${esc(s.document)}"></label>
-    <label>Lugar de expedición<input id="f_expedition" value="${esc(s.expedition)}"></label>
-    <label>Fecha de nacimiento<input type="date" id="f_birthdate" value="${esc(s.birthdate)}"></label>
-    <label>Ingresado por<select id="f_ingresadoPor"><option value="">Seleccione</option>${catalogOptions('secretaries',s.ingresadoPor)}</select></label>
-    <label>Nota de llamada del alumno o acuerdo semanal<textarea id="f_notaLlamada" rows="2">${esc(s.notaLlamada)}</textarea></label>
-    <label>Días<select id="f_dias"><option value="">Seleccione</option>${catalogOptions('days',s.dias)}</select></label>
-    <label>Horarios<select id="f_horarios"><option value="">Seleccione</option>${catalogOptions('schedules',s.horarios)}</select></label>
-    <label>Asesor<select id="f_asesor"><option value="">Seleccione</option>${catalogOptions('advisors',s.asesor)}</select></label>
-    <label>Valor semanal<input type="number" id="f_valorSemanal" min="0" value="${esc(s.valorSemanal??'')}" placeholder="Ej. 200000"></label>
-    <label>Duración del programa<select id="f_duracionPrograma"><option value="">Seleccione</option>${catalogOptions('durations',s.duracionPrograma)}</select></label>
-    <label>Tipo de estudiantes<select id="f_tipoEstudiantes"><option value="">Seleccione</option>${optionList(['Nuevo','Antiguo','Reingreso','Traslado','Otro'],s.tipoEstudiantes)}</select></label>
-    <label>Dirección / Barrio<input id="f_direccionBarrio" value="${esc(s.direccionBarrio)}"></label>
-    <label>Fecha ingreso al sistema<input type="date" id="f_fechaIngresoSistema" value="${esc(s.fechaIngresoSistema||today)}"></label>
-    <label>Lugar de nacimiento<input id="f_birthplace" value="${esc(s.birthplace)}"></label>
-    <label>Género<select id="f_gender"><option value="">Seleccione</option>${optionList(['FEMENINO','MASCULINO','OTRO'],s.gender)}</select></label>
-    <label>Nombre del acudiente<input id="f_acudienteNombre" value="${esc(s.acudienteNombre||'')}"></label>
-    <label>Teléfono del acudiente<input id="f_acudienteTelefono" value="${esc(s.acudienteTelefono||'')}"></label>
-    <label>Salón<select id="f_salon"><option value="">Seleccione</option>${catalogOptions('salons',s.salon)}</select></label>
-    <label>Última asistencia<input type="date" id="f_lastAttendance" value="${esc(s.lastAttendance||s.fechaIngresoSistema||today)}"></label>
-    <label>Estado<select id="f_status"><option ${s.status==='Activo'?'selected':''}>Activo</option><option ${s.status==='Retirado'?'selected':''}>Retirado</option></select></label>
-    ${customHtml}
-  </div>
-  <div class="form-actions"><button class="secondary" onclick="closeModal()">Cancelar</button><button class="primary" onclick="saveStudent('${existing?existing.id:''}')">Guardar estudiante</button></div>`);
-}
-function saveStudent(id){
-  const get=x=>document.getElementById(x)?.value.trim()||'';
-  const today=new Date().toISOString().slice(0,10);
-  const old=id?state.students.find(x=>x.id===id):null;
-  const custom={};customFields.forEach(f=>custom[f.id]=get(`f_custom_${f.id}`));
-  const obj={id:id||`NEW-${Date.now()}`,name:get('f_name'),phone:get('f_phone'),programBto:get('f_programBto'),program:get('f_program'),type:get('f_type'),document:get('f_doc'),expedition:get('f_expedition'),birthdate:get('f_birthdate'),ingresadoPor:get('f_ingresadoPor'),notaLlamada:get('f_notaLlamada'),dias:get('f_dias'),horarios:get('f_horarios'),asesor:get('f_asesor'),valorSemanal:Number(get('f_valorSemanal'))||0,duracionPrograma:get('f_duracionPrograma'),tipoEstudiantes:get('f_tipoEstudiantes'),direccionBarrio:get('f_direccionBarrio'),fechaIngresoSistema:get('f_fechaIngresoSistema')||old?.fechaIngresoSistema||today,birthplace:get('f_birthplace'),gender:get('f_gender'),acudienteNombre:get('f_acudienteNombre'),acudienteTelefono:get('f_acudienteTelefono'),salon:get('f_salon'),lastAttendance:get('f_lastAttendance')||old?.lastAttendance||today,customFields:custom,status:get('f_status')||old?.status||'Activo'};
-  if(!obj.name){toast('Escribe el nombre del estudiante');return}
-  if(!id){const dup=state.students.find(x=>(obj.document&&x.document&&String(x.document).trim()===String(obj.document).trim()) || (obj.name.toLowerCase()===String(x.name||'').toLowerCase() && obj.phone && String(x.phone||'').includes(obj.phone))); if(dup){const go=confirm(`⚠️ Este estudiante ya aparece en la base de datos.\n\n${dup.name}${dup.document?' · Documento: '+dup.document:''}\n${dup.phone?'Teléfono: '+dup.phone:''}\n\n¿Deseas continuar y registrar otro estudiante de todas formas?`); if(!go)return; audit('Aviso de posible estudiante duplicado',`${obj.name} · coincide con ${dup.name}`)}}
-  if(id)Object.assign(state.students.find(x=>x.id===id),obj);else state.students.unshift(obj);
-  localStorage.setItem('triunfar_students',JSON.stringify(state.students));closeModal();toast('Estudiante guardado correctamente');render()
-}
-function editStudent(id){openStudentForm(state.students.find(s=>s.id===id))}
-function getObligations(){
-  const groups={};
-  state.payments.forEach(p=>{const oid=p.obligationId||`LEGACY-${p.id}`;if(!groups[oid])groups[oid]={id:oid,studentId:p.studentId,concept:p.concept||'Otro',detail:p.detail||'',total:Number(p.obligationTotal??p.amount)||0,originalTotal:Number(p.originalTotal??p.obligationTotal??p.amount)||0,paid:0,discount:0,payments:[]};const g=groups[oid];if(p.obligationTotal!=null&&Number(p.obligationTotal)>g.total)g.total=Number(p.obligationTotal);if(p.originalTotal!=null&&Number(p.originalTotal)>g.originalTotal)g.originalTotal=Number(p.originalTotal);g.paid+=Number(p.amount)||0;g.discount+=Number(p.discount)||0;g.payments.push(p)});
-  return Object.values(groups).map(g=>{const monthly=String(g.concept||'').toLowerCase().trim()==='mensualidad',gross=Math.max(g.total,g.originalTotal||0),covered=Math.min(gross,g.paid+g.discount);return {...g,total:gross,covered,balance:Math.max(0,gross-covered),status:covered>=gross?'Pagada':covered>0?'Abono':'Pendiente'}});
-}
-function payments(c){
-  setHead('Pagos y Finanzas','Cuentas independientes por concepto, abonos y recibos');
-  const paid=state.payments.reduce((a,p)=>a+(Number(p.amount)||0),0);
-  const obs=getObligations(), pending=obs.reduce((a,o)=>a+o.balance,0);
-  const concepts=[...new Set(state.payments.map(p=>p.concept||'Otro'))].sort();
-  c.innerHTML=`<div class="grid three" style="margin-bottom:18px">${kpi('＄','Recaudo total',fmt(paid))}${kpi('▣','Cuentas',obs.length)}${kpi('⚠','Saldo pendiente',fmt(pending))}</div>
-  <div class="card" style="margin-bottom:18px"><div class="toolbar"><h2 style="margin:0;flex:1">Consulta de recaudo</h2><label style="min-width:170px">Fecha<input type="date" id="payFilterDate" value="${new Date().toISOString().slice(0,10)}"></label><label style="min-width:190px">Concepto<select id="payFilterConcept"><option value="">Todos los conceptos</option>${concepts.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label style="min-width:160px">Método<select id="payFilterMethod"><option value="">Todos</option>${['Efectivo','Transferencia','Mixto','Nequi','Daviplata','Tarjeta','PSE','Otro'].map(x=>`<option>${x}</option>`).join('')}</select></label><label style="min-width:170px">Recibido por<select id="payFilterSecretary"><option value="">Todas</option>${(catalogs.secretaries||[]).map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><button class="secondary" onclick="clearPaymentFilters()">Limpiar</button></div><div id="paymentFilterSummary"></div><div class="table-wrap"><table class="table"><thead><tr><th>Fecha</th><th>Estudiante</th><th>Concepto</th><th>Detalle</th><th>Abono</th><th>Descuento / motivo</th><th>Recibido por</th><th>Método</th><th>Recibo</th><th>Acciones</th></tr></thead><tbody id="filteredPaymentRows"></tbody></table></div></div>
-  <div class="toolbar"><button class="primary" onclick="openPaymentForm()">＋ Registrar pago / abono</button><button class="secondary" onclick="exportPayments()">⇩ Exportar CSV</button></div>
-  <div class="card"><h2>Cuentas por concepto</h2><p class="muted">Cada matrícula, mensualidad, uniforme u otro concepto queda separado. Los abonos se descuentan únicamente de la cuenta seleccionada.</p>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Estudiante</th><th>Concepto</th><th>Detalle / período</th><th>Total</th><th>Aplicado</th><th>Debe</th><th>Estado</th></tr></thead><tbody>
-  ${obs.slice().reverse().map(o=>`<tr><td><b>${esc(studentName(o.studentId))}</b></td><td>${esc(o.concept)}</td><td>${esc(o.detail||'—')}</td><td>${fmt(o.total)}</td><td class="money positive">${fmt(o.covered??o.paid)}</td><td class="money ${o.balance?'negative':'positive'}"><b>${fmt(o.balance)}</b></td><td><span class="badge ${o.status==='Pagada'?'active-b':'pending-b'}">${o.status}</span></td></tr>`).join('')||'<tr><td colspan="10" class="empty">Aún no hay cuentas registradas.</td></tr>'}
-  </tbody></table></div></div>`;
-  $('#payFilterDate').onchange=renderPaymentFilters; $('#payFilterConcept').onchange=renderPaymentFilters; $('#payFilterMethod').onchange=renderPaymentFilters; $('#payFilterSecretary').onchange=renderPaymentFilters; renderPaymentFilters();
-}
-function paymentMethodDetail(p){const cash=Number(p.cashAmount)||0,transfer=Number(p.transferAmount)||0;if(cash||transfer){return [cash?`Efectivo ${fmt(cash)}`:'',transfer?`Transferencia ${fmt(transfer)}`:''].filter(Boolean).join(' + ')}return p.method||'—'}
-function renderPaymentFilters(){
-  const date=$('#payFilterDate')?.value||'', concept=$('#payFilterConcept')?.value||'', method=$('#payFilterMethod')?.value||'', secretary=$('#payFilterSecretary')?.value||'';
-  const rows=state.payments.filter(p=>(!date||p.date===date)&&(!concept||(p.concept||'Otro')===concept)&&(!method||(p.method||'Otro')===method)&&(!secretary||(p.secretary||'')===secretary)).slice().reverse();
-  const total=rows.reduce((a,p)=>a+(Number(p.amount)||0),0);
-  const byConcept={}; const bySecretary={}; const byMethod={}; const byDiscount={};
-  rows.forEach(p=>{const k=p.concept||'Otro';byConcept[k]=(byConcept[k]||0)+(Number(p.amount)||0);const sec=p.secretary||'Sin secretaria';bySecretary[sec]=(bySecretary[sec]||0)+(Number(p.amount)||0);const m=p.method||'Otro';byMethod[m]=(byMethod[m]||0)+(Number(p.amount)||0);if(Number(p.discount)>0){const k2=p.secretary||'Sin secretaria';byDiscount[k2]=(byDiscount[k2]||0)+Number(p.discount||0)}});
-  const summary=`<div class="grid three" style="margin:14px 0">${kpi('＄','Recaudo filtrado',fmt(total),date?`Fecha: ${date}`:'Todas las fechas')}${kpi('▣','Pagos registrados',rows.length,concept||'Todos los conceptos')}${kpi('↗','Conceptos con recaudo',Object.keys(byConcept).length)}</div><div class="card" style="margin-bottom:14px;background:#f8fbff"><h3 style="margin-top:0">Recaudo por concepto</h3><div class="list">${Object.entries(byConcept).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="list-item"><span><b>${esc(k)}</b></span><b class="positive">${fmt(v)}</b></div>`).join('')||'<div class="empty">No hay pagos para los filtros seleccionados.</div>'}</div></div><div class="card" style="margin-bottom:14px;background:#f8fbff"><h3 style="margin-top:0">Total recaudado por secretaria</h3><div class="list">${Object.entries(bySecretary).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="list-item"><span><b>${esc(k)}</b></span><b class="positive">${fmt(v)}</b></div>`).join('')||'<div class="empty">No hay pagos para los filtros seleccionados.</div>'}</div></div><div class="card" style="margin-bottom:14px;background:#f8fbff"><h3 style="margin-top:0">Recaudo por método</h3><div class="list">${Object.entries(byMethod).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="list-item"><span><b>${esc(k)}</b></span><b class="positive">${fmt(v)}</b></div>`).join('')||'<div class="empty">No hay pagos para los filtros seleccionados.</div>'}</div></div><div class="card" style="margin-bottom:14px;background:#fff8e8"><h3 style="margin-top:0">Descuentos realizados</h3><div class="list">${Object.entries(byDiscount).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="list-item"><span><b>${esc(k)}</b></span><b>${fmt(v)}</b></div>`).join('')||'<div class="empty">No hay descuentos para los filtros seleccionados.</div>'}</div></div>`;
-  const el=$('#paymentFilterSummary'); if(el)el.innerHTML=summary;
-  const body=$('#filteredPaymentRows'); if(!body)return;
-  body.innerHTML=rows.map(p=>`<tr><td>${esc(p.date)}</td><td>${esc(studentName(p.studentId))}</td><td><b>${esc(p.concept||'Otro')}</b></td><td>${esc(p.detail||'—')}</td><td class="money positive">${fmt(p.amount)}</td><td>${Number(p.discount)>0?`${fmt(p.discount)} · ${esc(p.discountReason||'Sin motivo')}`:'—'}</td><td>${esc(p.secretary||'—')}</td><td>${esc(paymentMethodDetail(p))}</td><td>${esc(p.receipt||'—')}</td><td><button class="row-btn" onclick="showReceiptForPayment('${p.id}')">▧ Recibo</button> ${isAdmin()?`<button class="row-btn" onclick="editPayment('${p.id}')">✎</button> <button class="row-btn" onclick="deletePayment('${p.id}')">🗑</button>`:'—'}</td></tr>`).join('')||'<tr><td colspan="10" class="empty">No hay pagos para los filtros seleccionados.</td></tr>';
-}
-function clearPaymentFilters(){const d=$('#payFilterDate'),c=$('#payFilterConcept'),m=$('#payFilterMethod'),sec=$('#payFilterSecretary');if(d)d.value='';if(c)c.value='';if(m)m.value='';if(sec)sec.value='';renderPaymentFilters()}
-function openPaymentForm(studentId='',existing=null){
-  if(existing && !isAdmin()){toast('Solo el Administrador puede modificar facturas');return}
-  if(!existing && !canEditPayments()){toast('No tienes permiso para registrar pagos');return}
-  const all=existing?getObligations().find(o=>o.id===(existing.obligationId||`LEGACY-${existing.id}`)):null;
-  const pending=studentId?getObligations().filter(o=>o.studentId===studentId&&o.balance>0):[];
-  const concepts=catalogs.concepts||DEFAULT_CATALOGS.concepts;
-  const p=existing||{studentId,concept:'Matrícula',amount:'',method:'Efectivo',date:new Date().toISOString().slice(0,10),note:'',detail:'',obligationTotal:''};
-  openModal(`<div class="modal-head"><h2>${existing?'Modificar pago / recibo':'Registrar pago o abono'}</h2><button class="close" onclick="closeModal()">×</button></div>
-  <div class="form-grid">
-  <label>Estudiante<select id="p_student" onchange="refreshPaymentForm()">${state.students.map(s=>`<option value="${s.id}" ${s.id===p.studentId?'selected':''}>${esc(s.name)} · ${esc(s.document)}</option>`).join('')}</select></label>
-  ${existing?`<label>Cuenta / concepto<select id="p_obligation"><option value="${esc(existing.obligationId||`LEGACY-${existing.id}`)}">${esc(p.concept)}${p.detail?' · '+esc(p.detail):''}</option></select></label>`:`<label>Tipo de operación<select id="p_mode" onchange="refreshPaymentForm()"><option value="new">Nueva cuenta / obligación</option><option value="abono">Abonar a una cuenta existente</option></select></label>`}
-  <div id="paymentDynamic"></div>
-  <label>Método<select id="p_method">${['Efectivo','Transferencia','Mixto','Nequi','Daviplata','Tarjeta','PSE','Otro'].map(x=>`<option ${x===p.method?'selected':''}>${x}</option>`).join('')}</select></label><label>Secretaria que recibe<select id="p_secretary">${(catalogs.secretaries||[]).map(x=>`<option ${x===p.secretary?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
-  <label>Efectivo<input type="number" id="p_cash" min="0" value="${Number(p.cashAmount)?Number(p.cashAmount):''}"></label><label>Transferencia<input type="number" id="p_transfer" min="0" value="${Number(p.transferAmount)?Number(p.transferAmount):''}"></label><label>Dinero recibido (efectivo)<input type="number" id="p_receivedCash" min="0" value="${Number(p.receivedCash)?Number(p.receivedCash):''}" oninput="previewChange()"></label><label>Vuelto<input type="number" id="p_change" value="${Number(p.changeAmount)?Number(p.changeAmount):''}" readonly></label>
-  <label>Fecha<input type="date" id="p_date" value="${esc(p.date)}"></label><label>Observación<input id="p_note" value="${esc(p.note||'')}"></label><label>Motivo del descuento <span class="required-note">(obligatorio si hay descuento)</span><textarea id="p_discountReason" rows="2">${esc(p.discountReason||'')}</textarea></label>${invoiceFields.filter(f=>f.custom&&f.enabled).map(f=>`<label>${esc(f.name)}<input id="p_if_${esc(f.id)}" value="${esc((p.invoiceCustom||{})[f.id]||'')}"></label>`).join('')}
-  </div><div class="form-actions"><button class="secondary" onclick="closeModal()">Cancelar</button><button class="primary" onclick="savePayment('${existing?.id||''}')">${existing?'Guardar cambios':'Registrar y generar recibo'}</button></div>`);
-  refreshPaymentForm(!!existing, existing?.id || '');
-}
-function refreshPaymentForm(editing=false,paymentId=''){
-  const box=$('#paymentDynamic'); if(!box)return; const concepts=catalogs.concepts||DEFAULT_CATALOGS.concepts;
-  const sid=$('#p_student').value;
-  if(editing){const p=state.payments.find(x=>x.id===paymentId); if(!p)return; box.innerHTML=`<label>Concepto<select id="p_concept"><option>${esc(p.concept||'Otro')}</option></select></label><label>Detalle / período<input id="p_detail" value="${esc(p.detail||'')}"></label><label>Valor total de la cuenta<input type="number" id="p_total" value="${Number(p.originalTotal??p.obligationTotal??p.amount)||0}" readonly></label><label>Descuento / promoción<input type="number" id="p_discount" min="0" value="${Number(p.discount)||0}"></label><label>Valor de este pago<input type="number" id="p_amount" min="0" value="${Number(p.amount)||0}"></label><div id="p_balance_preview" class="muted"></div>`; previewPaymentBalance(); $('#p_cash')?.addEventListener('input',()=>{syncPaymentSplit();previewChange()}); $('#p_transfer')?.addEventListener('input',()=>{syncPaymentSplit();previewChange()}); $('#p_receivedCash')?.addEventListener('input',previewChange); previewChange(); return;}
-  const mode=$('#p_mode')?.value||'new';
-  if(mode==='abono'){
-    const list=getObligations().filter(o=>o.studentId===sid&&o.balance>0);
-    box.innerHTML=`<label>Cuenta a abonar<select id="p_existingObligation">${list.map(o=>`<option value="${esc(o.id)}">${esc(o.concept)}${o.detail?' · '+esc(o.detail):''} · Debe ${fmt(o.balance)}</option>`).join('')||'<option value="">No hay cuentas pendientes para este estudiante</option>'}</select></label><label>Descuento / promoción<input type="number" id="p_discount" min="0" value=""></label><label>Valor del abono<input type="number" id="p_amount" min="0" value=""></label><div id="p_balance_preview" class="muted"></div>`;
-  }else{
-    box.innerHTML=`<label>Concepto<select id="p_concept">${concepts.map(x=>`<option>${x}</option>`).join('')}</select></label><label>Detalle / período<input id="p_detail" placeholder="Ej. Uniforme talla M / Mensualidad septiembre 2026"></label><label>Valor total de la cuenta<input type="number" id="p_total" min="1" value=""></label><label>Descuento / promoción<input type="number" id="p_discount" min="0" value=""></label><label>Valor del abono / pago inicial<input type="number" id="p_amount" min="0" value=""></label><div id="p_balance_preview" class="muted"></div>`;
-    $('#p_total').oninput=previewPaymentBalance; $('#p_amount').oninput=previewPaymentBalance; $('#p_discount').oninput=previewPaymentBalance; $('#p_cash')?.addEventListener('input',()=>{syncPaymentSplit();previewChange()}); $('#p_transfer')?.addEventListener('input',()=>{syncPaymentSplit();previewChange()}); $('#p_receivedCash')?.addEventListener('input',previewChange); syncPaymentSplit(); previewChange(); previewPaymentBalance();
-  }
-}
-function syncPaymentSplit(){const cash=Number($('#p_cash')?.value)||0,transfer=Number($('#p_transfer')?.value)||0;const a=$('#p_amount');if(a && document.activeElement!==a)a.value=(cash||transfer)?(cash+transfer):''}
-function previewPaymentBalance(){const t=Number($('#p_total')?.value)||0,a=Number($('#p_amount')?.value)||0,d=Number($('#p_discount')?.value)||0;const net=Math.max(0,t-d);const el=$('#p_balance_preview');if(el)el.innerHTML=t?`Valor después del descuento: <b>${fmt(net)}</b> · Saldo después de este pago: <b>${fmt(Math.max(0,net-a))}</b>`:''}
-function previewChange(){const cash=Number($('#p_cash')?.value)||0,received=Number($('#p_receivedCash')?.value)||0;const ch=Math.max(0,received-cash);if($('#p_change'))$('#p_change').value=ch?ch:''}
-function savePayment(id=''){
-  const cash=Math.max(0,Number($('#p_cash')?.value)||0), transfer=Math.max(0,Number($('#p_transfer')?.value)||0), receivedCash=Math.max(0,Number($('#p_receivedCash')?.value)||0), changeAmount=Math.max(0,receivedCash-cash);
-  if(id){if(!isAdmin()){toast('Solo el Administrador puede modificar facturas');return}const p=state.payments.find(x=>x.id===id);if(!p)return;const amount=Number($('#p_amount').value)||0;const discount=Math.max(0,Number($('#p_discount')?.value)||0);const reason=($('#p_discountReason')?.value||'').trim();if(discount>0&&!reason){toast('Debes indicar el motivo del descuento');return}if(amount<0){toast('Ingresa un valor válido');return}const oldNet=Number(p.obligationTotal??p.amount)||0;const gross=Number(p.originalTotal??(oldNet+(Number(p.discount)||0)))||oldNet;const net=Math.max(0,gross-discount);if(amount>net){toast('El pago no puede superar el valor después del descuento');return}const splitTotal=cash+transfer;if(cash>0&&receivedCash<cash){toast('El dinero recibido en efectivo no puede ser menor al efectivo cobrado');return}if(splitTotal!==amount){toast(`Efectivo + Transferencia debe ser igual al pago: ${fmt(amount)}`);return}const method=splitTotal?((cash>0&&transfer>0)?'Mixto':cash>0?'Efectivo':'Transferencia'):($('#p_method').value||'Otro');Object.assign(p,{amount,discount,discountReason:reason,originalTotal:gross,method,cashAmount:cash,transferAmount:transfer,receivedCash,changeAmount,secretary:$('#p_secretary')?.value||state.currentUser?.name||'',date:$('#p_date').value,note:$('#p_note').value,invoiceCustom,obligationTotal:net});audit('Modificó factura',`${p.receipt}${discount?` · Descuento ${fmt(discount)} · Motivo: ${reason}`:''}`);toast('Pago modificado correctamente');save();closeModal();render();return}
-  if(!canEditPayments())return;
-  const sid=$('#p_student').value, mode=$('#p_mode').value, amount=Number($('#p_amount').value)||0, discount=Math.max(0,Number($('#p_discount')?.value)||0), reason=($('#p_discountReason')?.value||'').trim(); const invoiceCustom={};invoiceFields.filter(f=>f.custom).forEach(f=>invoiceCustom[f.id]=($('#p_if_'+f.id)?.value||'').trim());
-  if(discount>0&&!reason){toast('El motivo del descuento es obligatorio');return}
-  let obligationId, concept, detail, total, originalTotal;
-  if(mode==='abono'){
-    obligationId=$('#p_existingObligation').value; const o=getObligations().find(x=>x.id===obligationId); if(!o){toast('Selecciona una cuenta pendiente');return} if(discount>o.balance){toast('El descuento no puede superar el saldo pendiente');return} const newBalance=Math.max(0,o.balance-discount); if(amount<0||amount>newBalance){toast(`El abono no puede superar el saldo después del descuento: ${fmt(newBalance)}`);return} concept=o.concept; detail=o.detail; total=o.total; originalTotal=o.originalTotal||o.total;
-  }else{
-    concept=$('#p_concept').value; detail=$('#p_detail').value.trim(); const bruto=Number($('#p_total').value)||0; if(!bruto||bruto<=0){toast('Ingresa el valor total de la cuenta');return} if(discount>bruto){toast('El descuento no puede superar el valor de la cuenta');return} total=bruto; if(amount>Math.max(0,bruto-discount)){toast('El abono no puede superar el valor después del descuento');return} obligationId=`OBL-${Date.now()}`;
-  }
-  if(amount===0&&total>0&&discount<total){toast('Ingresa un pago mayor que cero o aplica un descuento que cubra toda la cuenta');return}
-  if(cash+transfer!==amount){toast(`Efectivo + Transferencia debe ser igual al pago: ${fmt(amount)}`);return}
-  const method=amount===0?'Sin pago (descuento total)':(cash>0&&transfer>0)?'Mixto':cash>0?'Efectivo':transfer>0?'Transferencia':($('#p_method').value||'Otro');
-  const n=state.payments.length+1;const p={id:`PAY-${Date.now()}`,obligationId,studentId:sid,concept,detail,obligationTotal:total,originalTotal:(originalTotal ?? (Number($('#p_total')?.value)||total+discount)),discount,discountReason:reason,invoiceCustom,amount,method,cashAmount:cash,transferAmount:transfer,receivedCash,changeAmount,secretary:$('#p_secretary')?.value||state.currentUser?.name||'',date:$('#p_date').value,note:$('#p_note').value,receipt:`REC-${new Date().getFullYear()}-${String(n).padStart(6,'0')}`};state.payments.push(p);audit(mode==='abono'?'Registró abono':'Registró nueva cuenta y pago',`${p.receipt}${discount?` · Descuento ${fmt(discount)} · Motivo: ${reason}`:''}`);save();closeModal();if(state.selected&&state.selected.id===sid){renderProfile();toast(`Pago registrado. ${mode==='abono'?'Saldo restante: '+fmt(Math.max(0,total-(getObligations().find(x=>x.id===obligationId)?.paid||0))):'Saldo pendiente: '+fmt(total-amount)}`);setTimeout(()=>receipt(sid),80);}else{toast(`Pago registrado. ${mode==='abono'?'Saldo restante: '+fmt(Math.max(0,total-(getObligations().find(x=>x.id===obligationId)?.paid||0))):'Saldo pendiente: '+fmt(total-amount)}`);render();setTimeout(()=>showReceiptForPayment(p.id),80);}
-}
-function editPayment(id){if(!isAdmin()){toast('Solo el Administrador puede modificar facturas');return}const p=state.payments.find(x=>x.id===id);if(p)openPaymentForm(p.studentId,p)}
-function deletePayment(id){if(!canDeletePayments()){toast('Solo el Administrador puede eliminar facturas');return}const p=state.payments.find(x=>x.id===id);if(!p)return;const reason=prompt(`Motivo para eliminar/anular ${p.receipt}:`);if(reason===null||!reason.trim())return;audit('Eliminó/anuló factura',`${p.receipt} · ${reason.trim()} · ${fmt(p.amount)}`);state.payments=state.payments.filter(x=>x.id!==id);save();toast('Factura eliminada y registrada en bitácora');render()}
-function salonFilter(c){
-  setHead('Filtro de salón','Consulta por programa, días, horario, salón y fecha de pago');
-  const programs=[...new Set(state.students.map(s=>s.program).filter(Boolean))].sort(); const days=[...new Set(state.students.map(s=>s.dias).filter(Boolean))].sort(); const schedules=[...new Set(state.students.map(s=>s.horarios).filter(Boolean))].sort(); const salons=catalogs.salons||[];
-  c.innerHTML=`<div class="card" style="margin-bottom:18px"><div class="toolbar"><label>Programa<select id="sf_program"><option value="">Todos</option>${programs.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Días<select id="sf_days"><option value="">Todos</option>${days.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Horario<select id="sf_schedule"><option value="">Todos</option>${schedules.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Salón<select id="sf_salon"><option value="">Todos</option>${salons.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Fecha de pago<input type="date" id="sf_payDate"></label><label>Estado<select id="sf_status"><option value="">Todos los estados</option><option value="active">🟢 Activos</option><option value="absent">🟡 Ausentes</option><option value="call">🟠 Llamar</option><option value="retired">⛔ Retirados</option></select></label><div class="status-filter-buttons"><button type="button" class="secondary status-filter-btn" data-status="" onclick="setSalonStatusFilter('')">Todos</button><button type="button" class="secondary status-filter-btn" data-status="active" onclick="setSalonStatusFilter('active')">🟢 Verde</button><button type="button" class="secondary status-filter-btn" data-status="absent" onclick="setSalonStatusFilter('absent')">🟡 Amarillo</button><button type="button" class="secondary status-filter-btn" data-status="call" onclick="setSalonStatusFilter('call')">🟠 Naranja</button><button type="button" class="secondary status-filter-btn" data-status="retired" onclick="setSalonStatusFilter('retired')">⛔ Retirados</button></div><button class="secondary" onclick="clearSalonFilters()">Limpiar</button></div></div><div id="salonSummary"></div><div class="card"><h2>Estudiantes encontrados</h2><div class="table-wrap"><table class="table"><thead><tr><th>Estado</th><th>Estudiante</th><th>Programa</th><th>Salón</th><th>Asesor</th><th>Teléfono</th><th>Total pagado</th><th>Último pago</th><th>Última asistencia</th><th></th></tr></thead><tbody id="salonRows"></tbody></table></div></div>`;
-  ['sf_program','sf_days','sf_schedule','sf_salon','sf_payDate','sf_status'].forEach(id=>{$('#'+id).onchange=renderSalonFilter}); renderSalonFilter();setSalonStatusFilter('');
-}
-function setSalonStatusFilter(status){const e=$('#sf_status');if(e)e.value=status||'';document.querySelectorAll('.status-filter-btn').forEach(b=>b.classList.toggle('active-filter',b.dataset.status===(status||'')));renderSalonFilter()}
-function renderSalonFilter(){const program=$('#sf_program')?.value||'',days=$('#sf_days')?.value||'',schedule=$('#sf_schedule')?.value||'',salon=$('#sf_salon')?.value||'',payDate=$('#sf_payDate')?.value||'',status=$('#sf_status')?.value||'';let rows=state.students.filter(s=>(!program||s.program===program)&&(!days||s.dias===days)&&(!schedule||s.horarios===schedule)&&(!salon||s.salon===salon)&&(!status||attendanceInfo(s).key===status));if(payDate)rows=rows.filter(s=>state.payments.some(p=>p.studentId===s.id&&p.date===payDate));const enriched=rows.map(s=>{const ps=state.payments.filter(p=>p.studentId===s.id);const viewPs=payDate?ps.filter(p=>p.date===payDate):ps;const total=viewPs.reduce((a,p)=>a+(Number(p.amount)||0),0);const last=viewPs.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];return {s,total,last}});const counts={active:0,absent:0,call:0,retired:0};enriched.forEach(x=>counts[attendanceInfo(x.s).key]++);const sum=$('#salonSummary');if(sum)sum.innerHTML=`<div class="grid four" style="margin-bottom:18px">${kpi('♙','Total estudiantes',enriched.length)}${kpi('✓','Activos',counts.active)}${kpi('⚠','Ausentes +1 mes',counts.absent)}${kpi('☎','Llamar +2 meses',counts.call)}</div>`;const body=$('#salonRows');if(!body)return;body.innerHTML=enriched.map(({s,total,last})=>`<tr><td>${attendanceBadge(s)}</td><td><b>${esc(s.name)}</b><br><small>${esc(s.document||'')}</small></td><td>${esc(s.program||'—')}</td><td>${esc(s.salon||'—')}</td><td>${esc(s.asesor||'—')}</td><td>${esc(s.phone||'—')}</td><td class="money positive">${fmt(total)}</td><td>${esc(last?.date||'—')}</td><td>${esc(s.lastAttendance||'—')}</td><td><button class="row-btn" onclick="selectStudentFromSalon('${s.id}')">Ver ficha</button></td></tr>`).join('')||'<tr><td colspan="10" class="empty">No hay estudiantes con esos filtros.</td></tr>'}
-function selectStudentFromSalon(id){const s=state.students.find(x=>x.id===id);if(!s)return;if(currentRole()==='Docente'){openModal(`<div class="modal-head"><div><div class="profile-meta">Consulta de estudiante</div><h2>${esc(s.name)}</h2></div><button class="close" onclick="closeModal()">×</button></div><div class="detail-grid"><div><span>Documento</span>${esc(s.document||'—')}</div><div><span>Programa</span>${esc(s.program||'—')}</div><div><span>Salón</span>${esc(s.salon||'—')}</div><div><span>Asesor</span>${esc(s.asesor||'—')}</div><div><span>Teléfono</span>${esc(s.phone||'—')}</div><div><span>Días</span>${esc(s.dias||'—')}</div><div><span>Horario</span>${esc(s.horarios||'—')}</div><div><span>Estado</span>${attendanceBadge(s)}</div><div><span>Última asistencia</span>${esc(s.lastAttendance||'—')}</div></div><div style="margin-top:16px"><button class="primary" onclick="showAttendanceCalendar('${s.id}')">📅 Ver historial de asistencia</button></div>`);return}state.view='students';document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view==='students'));render();setTimeout(()=>{selectStudent(id);document.getElementById('profile')?.scrollIntoView({behavior:'smooth',block:'start'})},0)}
-function clearSalonFilters(){['sf_program','sf_days','sf_schedule','sf_salon','sf_payDate','sf_status'].forEach(id=>{const e=$('#'+id);if(e)e.value=''});renderSalonFilter()}
-
-
-function attendance(c){setHead('Asistencia','Registro diario de asistencia e inasistencia por programa, horario y salón');c.innerHTML=`<div class="card"><div class="toolbar"><h2 style="margin:0;flex:1">Control de asistencia</h2><label>Fecha de asistencia<input type="date" id="attendanceDate" value="${new Date().toISOString().slice(0,10)}"></label></div><div class="filter-grid"><label>Programa<select id="at_program"><option value="">Todos</option>${(catalogs.programs||[]).map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Días<select id="at_days"><option value="">Todos</option>${(catalogs.days||[]).map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Horario<select id="at_schedule"><option value="">Todos</option>${(catalogs.schedules||[]).map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Salón<select id="at_salon"><option value="">Todos</option>${(catalogs.salons||[]).map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Fecha de pago<input type="date" id="at_payDate"></label><label>Estado<select id="at_status"><option value="">Todos</option><option value="active">🟢 Activos</option><option value="absent">🟡 Ausentes</option><option value="call">🟠 Llamar</option><option value="retired">⛔ Retirados</option></select></label></div></div><div id="attendanceSummary"></div><div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>Estudiante</th><th>Salón</th><th>Asesor</th><th>Teléfono</th><th>Estado</th><th>Asistencia</th><th>Inasistencia</th><th>Historial</th></tr></thead><tbody id="attendanceRows"></tbody></table></div></div>`;['at_program','at_days','at_schedule','at_salon','at_payDate','at_status','attendanceDate'].forEach(id=>$('#'+id).onchange=renderAttendanceRows);renderAttendanceRows()}
-function renderAttendanceRows(){const date=$('#attendanceDate')?.value||new Date().toISOString().slice(0,10),program=$('#at_program')?.value||'',days=$('#at_days')?.value||'',schedule=$('#at_schedule')?.value||'',salon=$('#at_salon')?.value||'',payDate=$('#at_payDate')?.value||'',status=$('#at_status')?.value||'';let rows=state.students.filter(s=>(!program||s.program===program)&&(!days||s.dias===days)&&(!schedule||s.horarios===schedule)&&(!salon||s.salon===salon)&&(!status||attendanceInfo(s).key===status));if(payDate)rows=rows.filter(s=>state.payments.some(p=>p.studentId===s.id&&p.date===payDate));const counts={present:0,absent:0};rows.forEach(s=>{const a=attendanceFor(s.id,date);if(a==='present')counts.present++;if(a==='absent')counts.absent++});const sum=$('#attendanceSummary');if(sum)sum.innerHTML=`<div class="grid four" style="margin:14px 0">${kpi('♙','Estudiantes',rows.length)}${kpi('✓','Asistieron',counts.present)}${kpi('×','Inasistieron',counts.absent)}${kpi('⚠','Pendientes',Math.max(0,rows.length-counts.present-counts.absent))}</div>`;const body=$('#attendanceRows');if(!body)return;body.innerHTML=rows.map(s=>{const st=attendanceFor(s.id,date);return `<tr><td><b>${esc(s.name)}</b><br><small>${esc(s.document||'')}</small></td><td>${esc(s.salon||'—')}</td><td>${esc(s.asesor||'—')}</td><td>${esc(s.phone||'—')}</td><td>${attendanceBadge(s)}${st?`<br><small>${st==='present'?'✓ Asistió':'× Inasistió'}</small>`:''}</td><td><button class="row-btn ${st==='present'?'active-filter':''}" onclick="setAttendance('${s.id}','present','${date}')">✓ Asistencia</button></td><td><button class="row-btn ${st==='absent'?'active-filter':''}" onclick="setAttendance('${s.id}','absent','${date}')">✕ Inasistencia</button></td><td><button class="row-btn" onclick="showAttendanceCalendar('${s.id}')">📅 Ver calendario</button></td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No hay estudiantes con esos filtros.</td></tr>'}
-
-function collectStudentFormData(existing=null){
-  const get=x=>document.getElementById(x)?.value.trim()||'';
-  const today=new Date().toISOString().slice(0,10); const old=existing||{}; const custom={};
-  customFields.forEach(f=>custom[f.id]=get(`f_custom_${f.id}`));
-  return {id:old.id||`PRE-${Date.now()}`,name:get('f_name'),phone:get('f_phone'),programBto:get('f_programBto'),program:get('f_program'),type:get('f_type'),document:get('f_doc'),expedition:get('f_expedition'),birthdate:get('f_birthdate'),ingresadoPor:get('f_ingresadoPor'),notaLlamada:get('f_notaLlamada'),dias:get('f_dias'),horarios:get('f_horarios'),asesor:get('f_asesor'),valorSemanal:Number(get('f_valorSemanal'))||0,duracionPrograma:get('f_duracionPrograma'),tipoEstudiantes:get('f_tipoEstudiantes'),direccionBarrio:get('f_direccionBarrio'),fechaIngresoSistema:get('f_fechaIngresoSistema')||old.fechaIngresoSistema||today,birthplace:get('f_birthplace'),gender:get('f_gender'),acudienteNombre:get('f_acudienteNombre'),acudienteTelefono:get('f_acudienteTelefono'),salon:get('f_salon'),lastAttendance:get('f_lastAttendance')||old.lastAttendance||today,customFields:custom,status:get('f_status')||old.status||'Activo'};
-}
-function openPreStudentForm(existing=null){
-  const today=new Date().toISOString().slice(0,10); const s=existing||{name:'',phone:'',programBto:'',program:'',type:'C.C.',document:'',expedition:'',birthdate:'',ingresadoPor:'',notaLlamada:'',dias:'',horarios:'',asesor:currentRole()==='Asesor'?state.currentUser?.name||'':'',valorSemanal:'',duracionPrograma:'',tipoEstudiantes:'Nuevo',direccionBarrio:'',fechaIngresoSistema:today,birthplace:'',gender:'',status:'Activo',acudienteNombre:'',acudienteTelefono:'',salon:'',lastAttendance:today,customFields:{}};
-  const custom=s.customFields||{}; const customHtml=customFields.map(f=>`<label>${esc(f.name)}<input id="f_custom_${esc(f.id)}" value="${esc(custom[f.id]||'')}" placeholder="${esc(f.placeholder||'')}"></label>`).join('');
-  openModal(`<div class="modal-head"><div><div class="profile-meta">Pre inscripción</div><h2>${existing?'Editar pre inscripción':'Nuevo estudiante'}</h2></div><button class="close" onclick="closeModal()">×</button></div><p class="profile-meta">El estudiante quedará pendiente de aprobación y todavía no entrará a la base principal.</p><div class="form-grid">
-  <label>Nombre completo<input id="f_name" value="${esc(s.name)}" required></label><label>Teléfonos<input id="f_phone" value="${esc(s.phone)}"></label>
-  <label>Programa / BTO<select id="f_programBto">${optionList(['Técnico','Bachillerato','Curso'],s.programBto)}</select></label><label>Programa<select id="f_program"><option value="">Seleccione</option>${catalogOptions('programs',s.program)}</select></label>
-  <label>Tipo de documento<select id="f_type">${optionList(['C.C.','T.I.','C.E.','P.P.','P.P.T.'],s.type||'C.C.')}</select></label><label>Número de identificación<input id="f_doc" value="${esc(s.document)}"></label>
-  <label>Lugar de expedición<input id="f_expedition" value="${esc(s.expedition)}"></label><label>Fecha de nacimiento<input type="date" id="f_birthdate" value="${esc(s.birthdate)}"></label>
-  <label>Ingresado por<select id="f_ingresadoPor"><option value="">Seleccione</option>${catalogOptions('secretaries',s.ingresadoPor)}</select></label><label>Nota de llamada del alumno o acuerdo semanal<textarea id="f_notaLlamada" rows="2">${esc(s.notaLlamada)}</textarea></label>
-  <label>Días<select id="f_dias"><option value="">Seleccione</option>${catalogOptions('days',s.dias)}</select></label><label>Horarios<select id="f_horarios"><option value="">Seleccione</option>${catalogOptions('schedules',s.horarios)}</select></label>
-  <label>Asesor<select id="f_asesor"><option value="">Seleccione</option>${catalogOptions('advisors',s.asesor)}</select></label><label>Valor semanal<input type="number" id="f_valorSemanal" min="0" value="${esc(s.valorSemanal??'')}"></label>
-  <label>Duración del programa<select id="f_duracionPrograma"><option value="">Seleccione</option>${catalogOptions('durations',s.duracionPrograma)}</select></label><label>Tipo de estudiantes<select id="f_tipoEstudiantes"><option value="">Seleccione</option>${optionList(['Nuevo','Antiguo','Reingreso','Traslado','Otro'],s.tipoEstudiantes)}</select></label>
-  <label>Dirección / Barrio<input id="f_direccionBarrio" value="${esc(s.direccionBarrio)}"></label><label>Fecha ingreso al sistema<input type="date" id="f_fechaIngresoSistema" value="${esc(s.fechaIngresoSistema||today)}"></label>
-  <label>Lugar de nacimiento<input id="f_birthplace" value="${esc(s.birthplace)}"></label><label>Género<select id="f_gender"><option value="">Seleccione</option>${optionList(['FEMENINO','MASCULINO','OTRO'],s.gender)}</select></label>
-  <label>Nombre del acudiente<input id="f_acudienteNombre" value="${esc(s.acudienteNombre||'')}"></label><label>Teléfono del acudiente<input id="f_acudienteTelefono" value="${esc(s.acudienteTelefono||'')}"></label>
-  <label>Salón<select id="f_salon"><option value="">Seleccione</option>${catalogOptions('salons',s.salon)}</select></label><label>Última asistencia<input type="date" id="f_lastAttendance" value="${esc(s.lastAttendance||s.fechaIngresoSistema||today)}"></label>
-  ${customHtml}</div><div class="form-actions"><button class="secondary" onclick="closeModal()">Cancelar</button><button class="primary" onclick="savePreStudent('${existing?.id||''}')">Enviar a pre inscripción</button></div>`);
-}
-function savePreStudent(id=''){
-  const obj=collectStudentFormData(state.preinscriptions.find(x=>x.id===id)); if(!obj.name){toast('Escribe el nombre del estudiante');return}
-  const dup=state.students.find(x=>(obj.document&&x.document&&String(x.document).trim()===String(obj.document).trim()) || (obj.name.toLowerCase()===String(x.name||'').toLowerCase()&&obj.phone&&String(x.phone||'').includes(obj.phone)));
-  if(dup){toast(`⚠️ Ya existe en la base principal: ${dup.name}`);return}
-  const pendingDup=state.preinscriptions.find(x=>x.id!==id&&((obj.document&&x.document&&String(x.document).trim()===String(obj.document).trim())||(obj.name.toLowerCase()===String(x.name||'').toLowerCase()&&obj.phone&&String(x.phone||'').includes(obj.phone))));
-  if(pendingDup){toast('Ya existe una pre inscripción para este estudiante');return}
-  obj.submittedBy=state.currentUser?.name||'Asesor'; obj.submittedAt=new Date().toISOString(); obj.statusPre='Pendiente';
-  if(id){const i=state.preinscriptions.findIndex(x=>x.id===id);if(i>=0)state.preinscriptions[i]=obj}else state.preinscriptions.unshift(obj);
-  localStorage.setItem('triunfar_preinscriptions',JSON.stringify(state.preinscriptions));audit(id?'Actualizó pre inscripción':'Creó pre inscripción',obj.name);closeModal();toast('Pre inscripción enviada para aprobación');render();
-}
-function preinscription(c){
-  setHead('Pre inscripción','Estudiantes pendientes de aprobación'); const canReview=isStaff();
-  const advisors=[...new Set([...catalogs.advisors,...state.preinscriptions.map(p=>p.asesor||p.submittedBy).filter(Boolean)])].sort();
-  c.innerHTML=`<div class="card" style="margin-bottom:18px"><div class="toolbar"><div style="flex:1;min-width:220px"><h2 style="margin:0">Pre inscripciones</h2><p class="profile-meta">Los asesores registran aquí los nuevos estudiantes. Secretaria o Administrador deben aprobarlos antes de pasarlos a la base principal.</p></div><button class="primary" onclick="openPreStudentForm()">＋ Nuevo estudiante</button></div>
-  <div class="filter-grid"><label>Estudiante<input class="search" id="preFilterStudent" placeholder="Nombre o documento"></label><label>Asesor<select class="select" id="preFilterAdvisor"><option value="">Todos los asesores</option>${advisors.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label>Fecha<input type="date" id="preFilterDate"></label><button class="secondary filter-clear" onclick="clearPreFilters()">Limpiar</button></div></div>
-  <div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>Fecha</th><th>Estudiante</th><th>Programa</th><th>Asesor</th><th>Teléfono</th><th>Estado</th><th></th></tr></thead><tbody id="preRows"></tbody></table></div></div>`;
-  ['preFilterStudent','preFilterAdvisor','preFilterDate'].forEach(id=>{const e=$('#'+id);if(e)e.oninput=e.onchange=renderPreinscriptionRows}); renderPreinscriptionRows();
-}
-function renderPreinscriptionRows(){
-  const q=($('#preFilterStudent')?.value||'').trim().toLowerCase(), advisor=$('#preFilterAdvisor')?.value||'', date=$('#preFilterDate')?.value||'';
-  const rows=state.preinscriptions.filter(p=>(!q||String(p.name||'').toLowerCase().includes(q)||String(p.document||'').toLowerCase().includes(q))&&(!advisor||(p.asesor||p.submittedBy||'')===advisor)&&(!date||String(p.submittedAt||'').slice(0,10)===date));
-  const body=$('#preRows');if(!body)return;body.innerHTML=rows.map(p=>`<tr><td>${esc((p.submittedAt||'').slice(0,10)||'—')}</td><td><b>${esc(p.name)}</b><br><small>${esc(p.document||'')}</small></td><td>${esc(p.program||'—')}</td><td>${esc(p.asesor||p.submittedBy||'—')}</td><td>${esc(p.phone||'—')}</td><td><span class="badge pending-b">Pendiente</span></td><td><button class="row-btn" onclick="openPreStudentForm(state.preinscriptions.find(x=>x.id==='${p.id}'))">Ver / editar</button> ${isStaff()?`<button class="row-btn" onclick="approvePreStudent('${p.id}')">✓ Aceptar</button><button class="row-btn" onclick="deletePreStudent('${p.id}')">Eliminar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">No hay pre inscripciones con esos filtros.</td></tr>';
-}
-function clearPreFilters(){['preFilterStudent','preFilterAdvisor','preFilterDate'].forEach(id=>{const e=$('#'+id);if(e)e.value=''});renderPreinscriptionRows()}
-function approvePreStudent(id){if(!isStaff()){toast('Solo Secretaria o Administrador pueden aprobar');return}const p=state.preinscriptions.find(x=>x.id===id);if(!p)return;const dup=state.students.find(x=>(p.document&&x.document&&String(x.document).trim()===String(p.document).trim())||(p.name.toLowerCase()===String(x.name||'').toLowerCase()&&p.phone&&String(x.phone||'').includes(p.phone)));if(dup){toast(`No se puede aprobar: ya existe ${dup.name} en la base`);return}const obj={...p,id:`NEW-${Date.now()}`,status:'Activo',fechaIngresoSistema:new Date().toISOString().slice(0,10),lastAttendance:new Date().toISOString().slice(0,10)};delete obj.statusPre;state.students.unshift(obj);state.preinscriptions=state.preinscriptions.filter(x=>x.id!==id);localStorage.setItem('triunfar_students',JSON.stringify(state.students));localStorage.setItem('triunfar_preinscriptions',JSON.stringify(state.preinscriptions));audit('Aprobó pre inscripción',`${p.name} · Asesor: ${p.asesor||p.submittedBy||'—'}`);toast('Estudiante aceptado y agregado a la base principal');render();}
-function deletePreStudent(id){if(!isStaff()){toast('Solo Secretaria o Administrador pueden eliminar');return}const p=state.preinscriptions.find(x=>x.id===id);if(!p)return;const reason=prompt(`Motivo para eliminar la pre inscripción de ${p.name}:`);if(reason===null||!reason.trim())return;state.preinscriptions=state.preinscriptions.filter(x=>x.id!==id);localStorage.setItem('triunfar_preinscriptions',JSON.stringify(state.preinscriptions));audit('Eliminó pre inscripción',`${p.name} · ${reason.trim()}`);toast('Pre inscripción eliminada');render();}
-
-function expenses(c){setHead('Gastos','Control de egresos y gastos del Instituto');c.innerHTML=`<div class="toolbar"><button class="primary" onclick="openExpenseForm()">＋ Registrar gasto</button></div><div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Valor</th></tr></thead><tbody>${state.expenses.slice().reverse().map(e=>`<tr><td>${e.date}</td><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td class="money negative">${fmt(e.amount)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Aún no hay gastos registrados.</td></tr>'}</tbody></table></div></div>`}
-function openExpenseForm(){openModal(`<div class="modal-head"><h2>Registrar gasto</h2><button class="close" onclick="closeModal()">×</button></div><div class="form-grid"><label>Fecha<input type="date" id="e_date" value="${new Date().toISOString().slice(0,10)}"></label><label>Categoría<select id="e_category"><option>Nómina</option><option>Arriendo</option><option>Servicios</option><option>Publicidad</option><option>Materiales</option><option>Transporte</option><option>Otro</option></select></label><label>Descripción<input id="e_desc"></label><label>Valor<input type="number" id="e_amount"></label></div><div class="form-actions"><button class="primary" onclick="saveExpense()">Guardar gasto</button></div>`)}
-function saveExpense(){let amount=Number($('#e_amount').value);if(!amount||amount<=0){toast('Ingresa un valor válido');return}state.expenses.push({date:$('#e_date').value,category:$('#e_category').value,description:$('#e_desc').value,amount});save();closeModal();toast('Gasto registrado');render()}
-const advisorNamesProxy=()=>catalogs.advisors||[];
-function advisorStudents(index){return state.students.filter(s=>s.asesor===advisorNamesProxy()[index])}
-function advisors(c){
-  setHead('Asesores','Matrículas y ranking mensual por alumnos ingresados');
-  const now=new Date(); const currentMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  c.innerHTML=`<div class="card" style="margin-bottom:18px"><div class="toolbar"><div style="flex:1"><h2 style="margin:0">Alumnos ingresados por asesor</h2><p class="profile-meta">Se cuentan por la fecha de ingreso al sistema, desde el día 1 hasta el último día del mes seleccionado.</p></div><label style="min-width:170px">Mes de corte<input type="month" id="advisorMonth" value="${currentMonth}"></label><input class="search" id="advisorSearch" placeholder="Buscar asesor..."></div></div><div class="card"><h2>Ranking mensual</h2><div class="table-wrap"><table class="table"><thead><tr><th>Puesto</th><th>Asesor</th><th>Alumnos ingresados</th><th>Periodo</th><th></th></tr></thead><tbody id="advisorRankingRows"></tbody></table></div></div>`;
-  const draw=()=>{
-    const month=$('#advisorMonth').value||currentMonth, q=$('#advisorSearch').value.trim().toLowerCase();
-    const [y,m]=month.split('-').map(Number); const rows=advisorNamesProxy().map((n,i)=>{const students=state.students.filter(s=>{if(s.asesor!==n)return false;const raw=s.fechaIngresoSistema||s.fechaIngreso||'';const d=String(raw).slice(0,10);return d.startsWith(`${month}-`)});return {n,i,total:students.length}}).filter(a=>a.n.toLowerCase().includes(q)).sort((a,b)=>b.total-a.total||a.n.localeCompare(b.n));
-    $('#advisorRankingRows').innerHTML=rows.map((a,i)=>`<tr><td><b>${i+1}</b></td><td><b>${esc(a.n)}</b></td><td><span class="badge ${a.total?'active-b':'pending-b'}">${a.total}</span></td><td>${String(month).split('-').reverse().join('/')}</td><td><button class="row-btn" onclick="openAdvisorProfile(${a.i})">Ver perfil</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No se encontraron asesores.</td></tr>';
-  };
-  $('#advisorMonth').onchange=draw; $('#advisorSearch').oninput=draw; draw();
-}
-function openAdvisorProfile(index){
-  const name=advisorNamesProxy()[index];
-  if(!name)return;
-  const assigned=advisorStudents(index);
-  const active=assigned.filter(s=>s.status==='Activo').length;
-  const inactive=assigned.length-active;
-  const programs={};
-  assigned.forEach(s=>{const p=s.program||'Sin programa';programs[p]=(programs[p]||0)+1});
-  const totalPayments=state.payments.filter(p=>assigned.some(s=>s.id===p.studentId)).reduce((a,p)=>a+p.amount,0);
-  openModal(`<div class="modal-head"><div><div class="profile-meta">Perfil del asesor</div><h2>${esc(name)}</h2></div><button class="close" onclick="closeModal()">×</button></div>
-    <div class="advisor-profile-hero"><div class="advisor-avatar large">${esc(name.slice(0,2).toUpperCase())}</div><div><h3>${esc(name)}</h3><p class="profile-meta">Asesor activo · Instituto Técnico Triunfar</p></div></div>
-    <div class="grid advisor-profile-kpis">
-      <div class="card mini-kpi"><span>Matrículas asignadas</span><b>${assigned.length}</b></div>
-      <div class="card mini-kpi"><span>Estudiantes activos</span><b class="positive">${active}</b></div>
-      <div class="card mini-kpi"><span>Inactivos / pendientes</span><b>${inactive}</b></div>
-      <div class="card mini-kpi"><span>Pagos registrados</span><b>${fmt(totalPayments)}</b></div>
-    </div>
-    <div class="card" style="margin-top:16px"><h3>Estudiantes asignados</h3>
-      <div class="table-wrap"><table class="table"><thead><tr><th>Estudiante</th><th>Programa</th><th>Documento</th><th>Estado</th><th></th></tr></thead><tbody>
-      ${assigned.map(s=>`<tr><td><b>${esc(s.name)}</b></td><td>${esc(s.program||'—')}</td><td>${esc(s.document||'—')}</td><td><span class="badge ${s.status==='Activo'?'active-b':'pending-b'}">${esc(s.status)}</span></td><td><button class="row-btn" onclick="openStudentFromAdvisor('${esc(s.id)}')">Ver ficha</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Aún no hay estudiantes asignados a este asesor.</td></tr>'}
-      </tbody></table></div>
-    </div>
-    <div class="card" style="margin-top:16px"><h3>Distribución por programa</h3><div class="progress">
-      ${Object.entries(programs).map(([p,n])=>`<div class="prog-row"><span>${esc(p)}</span><div class="track"><div class="fill" style="width:${assigned.length?Math.round(n/assigned.length*100):0}%"></div></div><b>${n}</b></div>`).join('')||'<div class="empty">Sin información.</div>'}
-    </div></div>
-    <div class="form-actions"><button class="secondary" onclick="closeModal()">Cerrar</button></div>`);
-}
-function openStudentFromAdvisor(id){
-  closeModal();
-  state.view='students';
-  document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view==='students'));
-  render();
-  setTimeout(()=>{selectStudent(id);document.getElementById('profile')?.scrollIntoView({behavior:'smooth',block:'start'})},0);
-}
-function reports(c){setHead('Reportes','Resumen financiero y operativo');const paid=state.payments.reduce((a,p)=>a+p.amount,0), exp=state.expenses.reduce((a,e)=>a+e.amount,0);c.innerHTML=`<div class="grid three">${kpi('↑','Ingresos',fmt(paid))}${kpi('↓','Gastos',fmt(exp))}${kpi('▥','Resultado',fmt(paid-exp))}</div><div class="grid two"><div class="card"><h2>Por programa</h2><div class="progress">${[...new Set(state.students.map(s=>s.program).filter(Boolean))].slice(0,10).map(p=>{let n=state.students.filter(s=>s.program===p).length;return `<div class="prog-row"><span>${esc(p)}</span><div class="track"><div class="fill" style="width:${n/state.students.length*100}%"></div></div><b>${n}</b></div>`}).join('')}</div></div><div class="card"><h2>Resumen</h2><div class="donut"></div></div></div>`}
-function discipline(c){
-  setHead('Disciplina','Actas de seguimiento, reincidencia y medidas disciplinarias');
-  const acts=state.disciplineActs||[];
-  const counts={1:0,2:0,3:0}; acts.forEach(a=>counts[a.actNumber]=(counts[a.actNumber]||0)+1);
-  c.innerHTML=`<div class="grid four discipline-kpis"><div class="card mini-kpi"><span>Actas registradas</span><b>${acts.length}</b></div><div class="card mini-kpi"><span>Acta 1 · Llamado</span><b>${counts[1]||0}</b></div><div class="card mini-kpi"><span>Acta 2 · Reincidencia</span><b>${counts[2]||0}</b></div><div class="card mini-kpi"><span>Acta 3 · Expulsión</span><b>${counts[3]||0}</b></div></div>
-  <div class="card discipline-hero"><div><h2>Seguimiento disciplinario</h2><p class="profile-meta">Cada estudiante puede acumular hasta tres actas: las dos primeras son llamados de atención con suspensión de clases y la tercera corresponde a expulsión.</p></div><button class="primary" onclick="openDisciplineActForm()">＋ Nueva acta</button></div>
-  <div class="card"><div class="toolbar"><h2 style="margin:0;flex:1">Historial y reincidencia</h2><input class="search" id="disciplineSearch" placeholder="Buscar estudiante o documento..."></div><div class="table-wrap"><table class="table"><thead><tr><th>Fecha</th><th>Estudiante</th><th>Acta</th><th>Falta</th><th>Medida</th><th>Reincidencia</th><th></th></tr></thead><tbody id="disciplineRows"></tbody></table></div></div>`;
-  $('#disciplineSearch').oninput=renderDisciplineRows; renderDisciplineRows();
-}
-function disciplineStudentActs(studentId){return state.disciplineActs.filter(a=>a.studentId===studentId).sort((a,b)=>String(a.date).localeCompare(String(b.date)))}
-function renderDisciplineRows(){const q=($('#disciplineSearch')?.value||'').trim().toLowerCase();const rows=state.disciplineActs.filter(a=>{const n=studentName(a.studentId).toLowerCase();const s=state.students.find(x=>x.id===a.studentId);return !q||n.includes(q)||String(s?.document||'').toLowerCase().includes(q)}).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));const body=$('#disciplineRows');if(!body)return;body.innerHTML=rows.map(a=>{const hist=disciplineStudentActs(a.studentId);const next=Math.min(3,hist.length);return `<tr><td>${esc(a.date)}</td><td><b>${esc(studentName(a.studentId))}</b><br><small>${esc(state.students.find(x=>x.id===a.studentId)?.document||'')}</small></td><td><span class="badge ${a.actNumber===3?'attendance-call':'pending-b'}">ACTA ${a.actNumber}</span></td><td>${esc(a.faultType||'—')}</td><td>${esc(a.measure||'—')}</td><td><b>${hist.length} de 3</b>${hist.length<3?` · siguiente ${next+1}`:' · límite alcanzado'}</td><td><button class="row-btn" onclick="viewDisciplineAct('${a.id}')">Ver</button><button class="row-btn" onclick="printDisciplineAct('${a.id}')">🖨 Imprimir</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">No hay actas registradas.</td></tr>'}
-function openDisciplineActForm(studentId=''){
-  if(!isStaff()){toast('Solo Secretaria o Administrador pueden crear actas');return}
-  const students=state.students.filter(s=>s.status!=='Retirado');
-  const sid=studentId||students[0]?.id||''; const hist=disciplineStudentActs(sid); const actNumber=hist.length+1;
-  if(actNumber>3){toast('Este estudiante ya tiene las 3 actas disciplinarias');return}
-  const s=state.students.find(x=>x.id===sid)||{};
-  const defaultMeasure=actNumber<3?'Llamado de atención y suspensión de clases':'Expulsión del plantel';
-  openModal(`<div class="modal-head"><div><div class="profile-meta">Acta disciplinaria</div><h2>Nueva acta · ${actNumber} de 3</h2></div><button class="close" onclick="closeModal()">×</button></div><div class="discipline-rule"><b>${actNumber<3?'Llamado de atención + suspensión':'Expulsión del plantel'}</b><span>Reincidencias anteriores: ${hist.length}</span></div><div class="form-grid"><label>Estudiante<select id="d_student" onchange="refreshDisciplineActForm()">${students.map(x=>`<option value="${x.id}" ${x.id===sid?'selected':''}>${esc(x.name)} · ${esc(x.document||'')}</option>`).join('')}</select></label><label>Fecha<input type="date" id="d_date" value="${new Date().toISOString().slice(0,10)}"></label><label>Acta N°<input id="d_number" value="${actNumber}" readonly></label><label>Horario<input id="d_schedule" value="${esc(s.dias||'')} · ${esc(s.horarios||'')}"></label><label>Tipo de falta<input id="d_faultType" placeholder="Ej. Falta muy grave"></label><label>Medida disciplinaria<input id="d_measure" value="${defaultMeasure}"></label><label style="grid-column:1/-1">Descripción de la falta cometida<textarea id="d_description" rows="5" placeholder="Describe claramente los hechos, fecha, lugar y circunstancias..."></textarea></label><label>Suspensión / duración<input id="d_suspension" placeholder="Ej. 3 días"></label><label>Compromiso del estudiante<textarea id="d_commitment" rows="3" placeholder="Escribe el compromiso del estudiante"></textarea></label><label style="grid-column:1/-1">Fundamento / artículo del Manual de Convivencia<textarea id="d_article" rows="3" placeholder="Ej. Artículo MC 11..."></textarea></label><label>Observaciones / debido proceso<textarea id="d_observations" rows="3"></textarea></label><label>Nombre de quien elabora<textarea id="d_coordinator" rows="2" placeholder="Coordinación / Rectoría"></textarea></label></div><div class="form-actions"><button class="secondary" onclick="closeModal()">Cancelar</button><button class="primary" onclick="saveDisciplineAct()">Guardar acta</button></div>`)
-}
-function refreshDisciplineActForm(){const sid=$('#d_student')?.value||'';const hist=disciplineStudentActs(sid);const n=hist.length+1;if(n>3){toast('Este estudiante ya tiene las 3 actas');return}if($('#d_number'))$('#d_number').value=n;if($('#d_measure'))$('#d_measure').value=n<3?'Llamado de atención y suspensión de clases':'Expulsión del plantel';const s=state.students.find(x=>x.id===sid);if($('#d_schedule'))$('#d_schedule').value=`${s?.dias||''} · ${s?.horarios||''}`}
-function saveDisciplineAct(){if(!isStaff())return;const sid=$('#d_student')?.value||'';if(!sid){toast('Selecciona un estudiante');return}const hist=disciplineStudentActs(sid);const n=hist.length+1;if(n>3){toast('Este estudiante ya tiene las 3 actas');return}const fault=($('#d_faultType')?.value||'').trim(),desc=($('#d_description')?.value||'').trim();if(!fault||!desc){toast('Indica el tipo de falta y describe lo ocurrido');return}const act={id:`ACT-${Date.now()}`,studentId:sid,actNumber:n,date:$('#d_date').value,schedule:$('#d_schedule').value,faultType:fault,measure:n===3?'Expulsión del plantel':(($('#d_measure').value||'').trim()||'Llamado de atención y suspensión de clases'),description:desc,suspension:($('#d_suspension').value||'').trim(),commitment:($('#d_commitment').value||'').trim(),article:($('#d_article').value||'').trim(),observations:($('#d_observations').value||'').trim(),coordinator:($('#d_coordinator').value||'').trim(),createdBy:state.currentUser?.name||'',createdAt:new Date().toISOString()};state.disciplineActs.push(act);localStorage.setItem('triunfar_discipline_acts',JSON.stringify(state.disciplineActs));audit('Creó acta disciplinaria',`${studentName(sid)} · Acta ${n} · ${fault}`);closeModal();toast(`Acta ${n} guardada`);render()}
-function disciplineActHtml(a){const s=state.students.find(x=>x.id===a.studentId)||{};const hist=disciplineStudentActs(a.studentId);const b=state.branding||{};return `<div class="print-act"><div class="print-head">${b.logo?`<img src="${b.logo}" alt="Logo">`:''}<div><h1>${esc(b.name||'INSTITUTO TÉCNICO TRIUNFAR')}</h1><p>${esc(b.slogan||'')}</p><h2>ACTA DE SEGUIMIENTO DISCIPLINARIO N° ${a.actNumber}</h2></div></div><div class="act-grid"><div><b>ESTUDIANTE:</b><br>${esc(s.name||'—')} / ${esc(s.document||'—')}</div><div><b>HORARIO:</b><br>${esc(a.schedule||'—')}</div><div><b>FECHA:</b><br>${esc(a.date||'—')}</div><div><b>REINCIDENCIA:</b><br>Acta ${a.actNumber} de 3 · ${hist.length} acta(s) registradas</div><div><b>TIPO DE FALTA:</b><br>${esc(a.faultType||'—')}</div><div><b>MEDIDA:</b><br>${esc(a.measure||'—')}</div></div><section><h3>CONSIDERACIONES</h3><p>Teniendo en cuenta que uno de los principios fundamentales de la institución es la formación integral de los estudiantes, basada en valores éticos, respeto, responsabilidad y sana convivencia, se deja constancia de lo siguiente:</p><ul><li>El cumplimiento del Manual de Convivencia es obligatorio para todos los estudiantes.</li><li>Las faltas serán evaluadas conforme a su gravedad y reincidencia.</li><li>Se garantiza el debido proceso, el derecho a la defensa y la aplicación de medidas acordes con la falta.</li></ul></section><section><h3>DESCRIPCIÓN DE LA FALTA COMETIDA</h3><div class="act-box">${esc(a.description).replace(/\n/g,'<br>')}</div></section><section><h3>SUSPENSIÓN / MEDIDA</h3><div class="act-box">${esc(a.suspension||a.measure||'').replace(/\n/g,'<br>')}</div></section><section><h3>COMPROMISO DEL ESTUDIANTE</h3><div class="act-box">${esc(a.commitment||'').replace(/\n/g,'<br>')}</div></section><section><h3>FUNDAMENTO / MANUAL DE CONVIVENCIA</h3><div class="act-box">${esc(a.article||'').replace(/\n/g,'<br>')}</div></section>${a.observations?`<section><h3>OBSERVACIONES / DEBIDO PROCESO</h3><div class="act-box">${esc(a.observations).replace(/\n/g,'<br>')}</div></section>`:''}<div class="act-history"><h3>REINCIDENCIA DEL ESTUDIANTE</h3>${hist.map((x,i)=>`<div><b>Acta ${x.actNumber}</b> · ${esc(x.date)} · ${esc(x.faultType||'—')} · ${esc(x.measure||'—')}</div>`).join('')}</div><div class="signatures"><div>ESTUDIANTE<br><span>________________________________</span></div><div>ACUDIENTE<br><span>________________________________</span></div><div>COORDINACIÓN O RECTORÍA<br><span>________________________________</span></div></div></div>`}
-function viewDisciplineAct(id){const a=state.disciplineActs.find(x=>x.id===id);if(!a)return;openModal(`<div class="modal-head"><h2>Acta ${a.actNumber} · ${esc(studentName(a.studentId))}</h2><button class="close" onclick="closeModal()">×</button></div>${disciplineActHtml(a)}<div class="form-actions"><button class="secondary" onclick="closeModal()">Cerrar</button><button class="primary" onclick="printDisciplineAct('${a.id}')">🖨 Imprimir acta</button></div>`)}
-function printDisciplineAct(id){const a=state.disciplineActs.find(x=>x.id===id);if(!a)return;const w=window.open('','_blank','width=900,height=1000');if(!w){toast('El navegador bloqueó la ventana de impresión');return}w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Acta ${a.actNumber} - ${esc(studentName(a.studentId))}</title><style>body{font-family:Arial,sans-serif;color:#182334;padding:32px;line-height:1.45}.print-head{display:flex;gap:18px;align-items:center;border-bottom:2px solid #1c5db8;padding-bottom:16px}.print-head img{width:80px;height:80px;object-fit:contain}.print-head h1{margin:0;font-size:22px}.print-head h2{margin:8px 0 0;font-size:17px}.act-grid{display:grid;grid-template-columns:repeat(2,1fr);border:1px solid #ccd5e2;margin:18px 0}.act-grid>div{padding:12px;border-bottom:1px solid #ccd5e2}.act-grid>div:nth-child(odd){border-right:1px solid #ccd5e2}.act-box{border:1px solid #ccd5e2;border-radius:6px;padding:14px;min-height:70px}.signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:55px;text-align:center}.act-history{margin-top:20px;border:1px solid #ccd5e2;padding:14px}h3{font-size:13px;margin:18px 0 8px;color:#1c5db8}@media print{body{padding:12px}}</style></head><body>${disciplineActHtml(a)}<script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close()}
-
-function academic(c){
-  setHead('Pagos establecidos','Tarifas institucionales editables · valores de referencia anual');
-  const d=establishedPayments.degree||[], u=establishedPayments.uniforms||[], p=establishedPayments.payments||[];
-  const row=(x,i,section,fields)=>`<tr>${fields.map(f=>`<td><input class="est-input" data-section="${section}" data-index="${i}" data-field="${f}" value="${esc(x[f]||'')}"></td>`).join('')}<td><button class="row-btn danger" onclick="removeEstablishedRow('${section}',${i})">Quitar</button></td></tr>`;
-  c.innerHTML=`
-  <div class="card established-intro"><div><h2>Pagos establecidos</h2><p class="profile-meta">Esta hoja reemplaza la sección Académico. Los precios y textos se pueden modificar cada año y quedan guardados en este navegador.</p></div><button class="primary" onclick="saveEstablishedPayments() ; toast('Pagos establecidos guardados')">💾 Guardar cambios</button></div>
-  <div class="card established-card"><div class="established-title"><h2>COSTOS DE DERECHO A GRADO</h2><button class="secondary" onclick="addEstablishedRow('degree')">＋ Agregar fila</button></div><div class="table-wrap"><table class="established-table"><thead><tr><th>DESCRIPCIÓN</th><th>CEREMONIA</th><th>DESCUENTO APLICA HASTA</th><th>VENTANILLA</th><th>10 % APLICA HASTA</th><th></th></tr></thead><tbody>${d.map((x,i)=>row(x,i,'degree',['description','ceremony','until','counter','discountUntil'])).join('')}</tbody></table></div></div>
-  <div class="card established-card"><div class="established-title"><h2>COSTOS UNIFORMES</h2><button class="secondary" onclick="addEstablishedRow('uniforms')">＋ Agregar fila</button></div><div class="table-wrap"><table class="established-table"><thead><tr><th>DESCRIPCIÓN</th><th>PRECIO</th><th></th></tr></thead><tbody>${u.map((x,i)=>row(x,i,'uniforms',['description','price'])).join('')}</tbody></table></div></div>
-  <div class="card established-card"><div class="established-title"><h2>PAGOS ESTABLECIDOS</h2><button class="secondary" onclick="addEstablishedRow('payments')">＋ Agregar fila</button></div><div class="table-wrap"><table class="established-table"><thead><tr><th>DESCRIPCIÓN</th><th>PAGO / PRECIO</th><th>ALTERNATIVA / CONDICIÓN</th><th></th></tr></thead><tbody>${p.map((x,i)=>row(x,i,'payments',['description','price','alternative'])).join('')}</tbody></table></div></div>
-  <div class="established-note">✎ Edita cualquier celda y pulsa <b>Guardar cambios</b>. Puedes agregar o quitar filas sin perder las demás funciones del sistema.</div>`;
-  c.querySelectorAll('.est-input').forEach(inp=>inp.addEventListener('change',()=>{const sec=inp.dataset.section, i=Number(inp.dataset.index); establishedPayments[sec][i][inp.dataset.field]=inp.value;}));
-}
-function addEstablishedRow(section){if(!isAdmin()){toast('Solo el Administrador puede modificar estos valores');return}const defaults={degree:{description:'NUEVO CONCEPTO',ceremony:'',until:'',counter:'',discountUntil:''},uniforms:{description:'NUEVO UNIFORME',price:''},payments:{description:'NUEVO PAGO',price:'',alternative:''}};establishedPayments[section].push(defaults[section]);saveEstablishedPayments();audit('Agregó fila a pagos establecidos',section);render()}
-function removeEstablishedRow(section,index){if(!isAdmin())return;if(!confirm('¿Quitar esta fila de pagos establecidos?'))return;establishedPayments[section].splice(index,1);saveEstablishedPayments();audit('Quitó fila de pagos establecidos',section);render()}
-function saveEstablishedPayments(){localStorage.setItem('triunfar_established_payments',JSON.stringify(establishedPayments));audit('Actualizó pagos establecidos','Tarifas institucionales');toast('Pagos establecidos guardados');render()}
-function generic(c,v){const map={schedule:['Horarios y Cronograma','Base para migrar la hoja HORARIO Y CRONOGRAMA a un calendario web'],discipline:['Disciplina','Actas disciplinarias e historial por estudiante']};if(v==='settings'){settings(c);return}if(v==='academic'){academic(c);return}setHead(...map[v]);c.innerHTML=`<div class="card"><h2>${map[v][0]}</h2><p class="profile-meta">${map[v][1]}</p><div class="empty">Este módulo está preparado en la arquitectura. La siguiente versión conectará los datos específicos del Excel y los nuevos registros.</div></div>`}
-function settings(c){
-  setHead('Configuración','Usuarios, catálogos, campos del estudiante y factura');
-  if(!isAdmin()){c.innerHTML=`<div class="card"><h2>Acceso restringido</h2><p class="profile-meta">Solo el Administrador puede gestionar usuarios, catálogos y auditoría.</p></div>`;return}
-  const catalogMeta={programs:'Programas',days:'Días',schedules:'Horarios',secretaries:'Secretarias',advisors:'Asesores',durations:'Duración de programas',salons:'Salones',concepts:'Conceptos de pago'};
-  const catalogCards=Object.entries(catalogMeta).map(([key,title])=>`<div class="card" style="margin-bottom:14px"><div class="toolbar"><h3 style="margin:0;flex:1">${title}</h3><button class="secondary" onclick="addCatalogItem('${key}')">＋ Agregar</button></div><div class="list">${(catalogs[key]||[]).map((v,i)=>`<div class="list-item"><span>${esc(v)}</span><button class="row-btn" onclick="removeCatalogItem('${key}',${i})">Quitar</button></div>`).join('')||'<div class="empty">Sin opciones.</div>'}</div></div>`).join('');
-  const customHtml=customFields.map((f,i)=>`<div class="list-item"><span><b>${esc(f.name)}</b><br><small>${esc(f.type||'Texto')}</small></span><button class="row-btn" onclick="removeCustomField(${i})">Quitar</button></div>`).join('')||'<div class="empty">No hay campos adicionales.</div>';
-  c.innerHTML=`
-  <details class="settings-section" open><summary>👥 Usuarios y permisos</summary><div class="settings-panel"><div class="grid two">
-    <div class="card"><div class="toolbar"><h2 style="margin:0;flex:1">Usuarios del sistema</h2><button class="primary" onclick="openUserForm()">＋ Nuevo usuario</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>${state.users.map(u=>`<tr><td><b>${esc(u.name)}</b><br><small>${esc(u.username)}</small></td><td>${esc(u.role==='Cajero'?'Secretaria':u.role)}</td><td><span class="badge ${u.active?'active-b':'pending-b'}">${u.active?'Activo':'Inactivo'}</span></td><td><button class="row-btn" onclick="openUserForm('${u.id}')">Editar</button> ${u.id!=='USR-ADMIN'?`<button class="row-btn" onclick="deleteUser('${u.id}')">Eliminar</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>
-    <div class="card"><h2>Permisos</h2><div class="list"><div class="list-item"><span>Administrador</span><b>Control total</b></div><div class="list-item"><span>Secretaria</span><b>Pagos y recibos</b></div><div class="list-item"><span>Asesor</span><b>Solo Pre inscripción</b></div><div class="list-item"><span>Docente</span><b>Solo Filtro de salón</b></div></div><div class="action-row"><button class="secondary" onclick="logout()">Cerrar sesión</button></div></div>
-  </div></div></details>
-  <details class="settings-section" open><summary>📚 Catálogos</summary><div class="settings-panel"><p class="profile-meta">Agrega o retira opciones sin borrar los datos históricos de estudiantes o pagos.</p>${catalogCards}</div></details>
-  <details class="settings-section"><summary>🧩 Campos adicionales del estudiante</summary><div class="settings-panel"><div class="toolbar"><div><h2 style="margin:0">Campos adicionales</h2><p class="profile-meta">Crea nuevas casillas cuando aparezca una necesidad especial.</p></div><button class="primary" onclick="addCustomField()">＋ Agregar casilla</button></div><div class="list">${customHtml}</div></div></details>
-  <details class="settings-section"><summary>🧾 Campos de la factura / recibo</summary><div class="settings-panel"><div class="toolbar"><div><h2 style="margin:0">Campos de factura</h2><p class="profile-meta">Activa, desactiva, agrega o quita campos que aparecerán en el recibo.</p></div><button class="primary" onclick="addInvoiceField()">＋ Agregar casilla</button></div><div class="list">${invoiceFields.map((f,i)=>`<div class="list-item"><span><b>${esc(f.name)}</b></span><span><button class="row-btn" onclick="toggleInvoiceField(${i})">${f.enabled?'Ocultar':'Mostrar'}</button> <button class="row-btn" onclick="removeInvoiceField(${i})">Quitar</button></span></div>`).join('')}</div></div></details>
-  <details class="settings-section" open><summary>🏫 Identidad institucional</summary><div class="settings-panel"><div class="grid two"><div><label>Nombre de la institución<input id="brand_name" value="${esc(state.branding.name||'INSTITUTO TÉCNICO TRIUNFAR')}"></label><label style="margin-top:12px">Frase / subtítulo<input id="brand_slogan" value="${esc(state.branding.slogan||'Formamos tu futuro')}"></label><div class="form-actions" style="justify-content:flex-start"><button class="primary" onclick="saveBrandName()">Guardar nombre</button></div></div><div><label>Logo institucional<input type="file" accept="image/*" onchange="handleLogoUpload(this)"></label><div class="brand-preview">${state.branding.logo?`<img src="${state.branding.logo}" alt="Logo institucional">`:'<span>Sin logo cargado</span>'}</div>${state.branding.logo?'<button class="secondary" onclick="removeLogo()">Quitar logo</button>':''}<p class="profile-meta">PNG, JPG o WEBP. Máximo 2 MB. El logo queda guardado en este navegador.</p></div></div></div></details>
-  <details class="settings-section"><summary>📝 Bitácora de seguridad</summary><div class="settings-panel"><div class="card"><h2>Bitácora de seguridad</h2><div class="table-wrap"><table class="table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>${state.audit.slice().reverse().slice(0,50).map(a=>`<tr><td>${new Date(a.date).toLocaleString('es-CO')}</td><td>${esc(a.user)}</td><td>${esc(a.action)}</td><td>${esc(a.detail)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sin movimientos.</td></tr>'}</tbody></table></div></div></div></details>`;
-}
-function addInvoiceField(){if(!isAdmin())return;const name=prompt('Nombre de la nueva casilla de factura:');if(!name||!name.trim())return;const clean=name.trim();if(invoiceFields.some(f=>f.name.toLowerCase()===clean.toLowerCase())){toast('Esa casilla ya existe');return}invoiceFields.push({id:`IF-${Date.now()}`,name:clean,enabled:true,custom:true});saveInvoiceFields();audit('Agregó campo de factura',clean);toast('Campo de factura agregado');settings($('#content'))}
-function toggleInvoiceField(i){if(!isAdmin())return;const f=invoiceFields[i];if(!f)return;f.enabled=!f.enabled;saveInvoiceFields();audit(f.enabled?'Activó campo de factura':'Ocultó campo de factura',f.name);settings($('#content'))}
-function removeInvoiceField(i){if(!isAdmin())return;const f=invoiceFields[i];if(!f)return;if(!confirm(`¿Quitar el campo "${f.name}" de la factura?`))return;invoiceFields.splice(i,1);saveInvoiceFields();audit('Quitó campo de factura',f.name);toast('Campo retirado');settings($('#content'))}
-
-function addCatalogItem(key){if(!isAdmin())return;const title={programs:'programa',days:'opción de días',schedules:'horario',secretaries:'secretaria',advisors:'asesor',durations:'duración',salons:'salón',concepts:'concepto de pago'}[key]||'opción';const value=prompt(`Escribe el nuevo ${title}:`);if(!value||!value.trim())return;const v=value.trim();if((catalogs[key]||[]).some(x=>x.toLowerCase()===v.toLowerCase())){toast('Esa opción ya existe');return}catalogs[key].push(v);saveCatalogs();audit('Agregó opción de catálogo',`${title}: ${v}`);toast('Opción agregada');settings($('#content'))}
-function removeCatalogItem(key,index){if(!isAdmin())return;const v=catalogs[key]?.[index];if(!v)return;if(!confirm(`¿Quitar "${v}" del catálogo? Los estudiantes que ya la tengan conservarán ese dato.`))return;catalogs[key].splice(index,1);saveCatalogs();audit('Quitó opción de catálogo',`${key}: ${v}`);toast('Opción retirada');settings($('#content'))}
-function addCustomField(){if(!isAdmin())return;const name=prompt('Nombre de la nueva casilla:');if(!name||!name.trim())return;const clean=name.trim();if(customFields.some(f=>f.name.toLowerCase()===clean.toLowerCase())){toast('Esa casilla ya existe');return}const type=(prompt('Tipo de casilla: escribe Texto, Número o Fecha','Texto')||'Texto').trim();const id=`CF-${Date.now()}`;customFields.push({id,name:clean,type:type==='Fecha'?'date':type==='Número'?'number':'text'});saveCustomFields();audit('Agregó campo de estudiante',clean);toast('Casilla agregada');settings($('#content'))}
-function removeCustomField(index){if(!isAdmin())return;const f=customFields[index];if(!f)return;if(!confirm(`¿Quitar la casilla "${f.name}"? Los datos existentes no se borrarán, pero dejará de mostrarse.`))return;customFields.splice(index,1);saveCustomFields();audit('Quitó campo de estudiante',f.name);toast('Casilla retirada');settings($('#content'))}
-function openUserForm(id=''){if(!canManageUsers()){toast('Solo el Administrador puede gestionar usuarios');return}const u=state.users.find(x=>x.id===id)||{name:'',username:'',password:'',role:'Secretaria',active:true};openModal(`<div class="modal-head"><h2>${id?'Editar usuario':'Nuevo usuario'}</h2><button class="close" onclick="closeModal()">×</button></div><div class="form-grid"><label>Nombre<input id="u_name" value="${esc(u.name)}"></label><label>Usuario<input id="u_username" value="${esc(u.username)}"></label><label>Contraseña<input type="password" id="u_password" value="${esc(u.password)}" placeholder="Contraseña"></label><label>Rol<select id="u_role"><option ${u.role==='Administrador'?'selected':''}>Administrador</option><option ${u.role==='Secretaria' || u.role==='Cajero'?'selected':''}>Secretaria</option><option ${u.role==='Asesor'?'selected':''}>Asesor</option><option ${u.role==='Docente'?'selected':''}>Docente</option></select></label><label>Estado<select id="u_active"><option value="true" ${u.active?'selected':''}>Activo</option><option value="false" ${!u.active?'selected':''}>Inactivo</option></select></label></div><div class="form-actions"><button class="secondary" onclick="closeModal()">Cancelar</button><button class="primary" onclick="saveUser('${id}')">Guardar usuario</button></div>`)}
-function saveUser(id){if(!canManageUsers())return;const get=x=>document.getElementById(x).value.trim();const name=get('u_name'),username=get('u_username'),password=get('u_password');if(!name||!username||!password){toast('Completa nombre, usuario y contraseña');return}if(state.users.some(x=>x.username===username&&x.id!==id)){toast('Ese usuario ya existe');return}const obj={id:id||`USR-${Date.now()}`,name,username,password,role:get('u_role'),active:$('#u_active').value==='true'};if(id)Object.assign(state.users.find(x=>x.id===id),obj);else state.users.push(obj);saveUsers();audit(id?'Modificó usuario':'Creó usuario',`${name} · ${obj.role}`);save();closeModal();toast(id?'Usuario actualizado':'Usuario creado');render()}
-function deleteUser(id){if(!canManageUsers())return;const u=state.users.find(x=>x.id===id);if(!u)return;if(u.id==='USR-ADMIN'){toast('El administrador principal no puede eliminarse');return}if(!confirm(`¿Eliminar al usuario ${u.name}?`))return;state.users=state.users.filter(x=>x.id!==id);audit('Eliminó usuario',u.name);save();toast('Usuario eliminado');render()}
-
-function studentName(id){return state.students.find(s=>s.id===id)?.name||'Estudiante'}
-function showReceiptForPayment(paymentId){
-  const p=state.payments.find(x=>x.id===paymentId);if(!p){toast('No se encontró el recibo');return}
-  const o=getObligations().find(x=>x.id===(p.obligationId||`LEGACY-${p.id}`)); const total=Number(o?.total??p.originalTotal??p.obligationTotal??p.amount)||0; const paid=Number(o?.covered??o?.paid??p.amount)||0; const balance=Number(o?.balance??Math.max(0,total-paid))||0; const s=state.students.find(x=>x.id===p.studentId)||{}; const weekly=Number(s.valorSemanal)||0; const duration=parseFloat(String(s.duracionPrograma||'').replace(',','.').match(/-?\d+(?:\.\d+)?/)?.[0]||0); const totalProgram=weekly*duration; const studentObs=getObligations().filter(x=>x.studentId===p.studentId); const monthlyPaid=studentObs.filter(x=>String(x.concept||'').toLowerCase().trim()==='mensualidad').reduce((a,x)=>a+(Number(x.covered??x.paid)||0),0); const weeksRemaining=weekly&&duration?Math.max(0,duration-(monthlyPaid/weekly)):0; const vals={student:studentName(p.studentId),program:s.program||s.programBto||'—',concept:p.concept||'—',detail:p.detail||'—',originalTotal:fmt(Number(p.originalTotal??total)),discount:fmt(Number(p.discount)||0),discountReason:p.discountReason||'—',netTotal:fmt(Math.max(0,total-(Number(p.discount)||0))),amount:fmt(p.amount),paid:fmt(paid),balance:fmt(balance),paymentMethod:paymentMethodDetail(p),cash:fmt(Number(p.cashAmount)||0),transfer:fmt(Number(p.transferAmount)||0),receivedCash:fmt(Number(p.receivedCash)||0),change:fmt(Number(p.changeAmount)||0),secretary:p.secretary||'—',date:p.date||'—',totalProgram:totalProgram?fmt(totalProgram):'—',monthlyPaid:fmt(monthlyPaid),duration:s.duracionPrograma||'—',weeksRemaining:weekly&&duration?weeksRemaining.toLocaleString('es-CO',{maximumFractionDigits:2}):'—'};
-  const labels={student:'Estudiante',program:'Programa',concept:'Concepto',detail:'Detalle',originalTotal:'Valor de la cuenta',discount:'Descuento / promoción',discountReason:'Motivo del descuento',netTotal:'Valor después del descuento',amount:'Pago realizado',paid:'Total abonado a la cuenta',balance:'Saldo pendiente',paymentMethod:'Forma de pago',cash:'Efectivo',transfer:'Transferencia',receivedCash:'Dinero recibido en efectivo',change:'Vuelto',secretary:'Secretaria que recibió',date:'Fecha',totalProgram:'Total del programa',monthlyPaid:'Pago total de mensualidades',duration:'Duración del programa',weeksRemaining:'Semanas restantes'};
-  const body=invoiceFields.filter(f=>f.enabled).map(f=>{const value=f.custom?(p.invoiceCustom||{})[f.id]:vals[f.id];return `<p><b>${esc(f.name||labels[f.id]||'Campo')}:</b> ${esc(value??'—')}</p>`}).join('');
-  openModal(`<div class="modal-head"><h2>Recibo de pago</h2><button class="close" onclick="closeModal()">×</button></div><div style="border:1px solid #dbe3ee;padding:28px;border-radius:14px"><h2>${esc(state.branding?.name||'INSTITUTO TÉCNICO TRIUNFAR')}</h2><p class="profile-meta">RECIBO ${esc(p.receipt||'—')}</p><hr>${body}<hr><p class="profile-meta">Generado por el sistema TRIUNFAR 1.0</p></div><div class="form-actions"><button class="primary" onclick="window.print()">Imprimir</button></div>`)
-}
-function receipt(id){const ps=state.payments.filter(p=>p.studentId===id);if(!ps.length){toast('Este estudiante aún no tiene pagos registrados');return}showReceiptForPayment(ps[ps.length-1].id)}
-
-function exportPayments(){const rows=[['Fecha','Estudiante','Concepto','Método','Secretaria','Valor','Descuento','Recibo'],...state.payments.map(p=>[p.date,studentName(p.studentId),p.concept,p.method,p.secretary||'',p.amount,p.discount||0,p.receipt])];download('pagos_triunfar.csv',rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(';')).join('\n'),'text/csv;charset=utf-8')}
-function backup(){const data={students:state.students,payments:state.payments,expenses:state.expenses,catalogs,customStudentFields:customFields,invoiceFields,preinscriptions:state.preinscriptions,disciplineActs:state.disciplineActs,attendance:state.attendance,branding:state.branding,createdAt:new Date().toISOString()};download(`TRIUNFAR_BACKUP_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(data,null,2),'application/json');toast('Copia de seguridad descargada')}
-function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
-function openModal(x){$('#modalCard').innerHTML=x;$('#modal').classList.remove('hidden')}function closeModal(){$('#modal').classList.add('hidden')}window.closeModal=closeModal;window.login=login;window.logout=logout;window.openUserForm=openUserForm;window.saveUser=saveUser;window.deleteUser=deleteUser;window.editPayment=editPayment;window.deletePayment=deletePayment;window.openStudentForm=openStudentForm;window.saveStudent=saveStudent;window.selectStudent=selectStudent;window.openPaymentForm=openPaymentForm;window.savePayment=savePayment;window.openExpenseForm=openExpenseForm;window.saveExpense=saveExpense;window.editStudent=editStudent;window.receipt=receipt;window.showReceiptForPayment=showReceiptForPayment;window.exportPayments=exportPayments;window.renderPaymentFilters=renderPaymentFilters;window.clearPaymentFilters=clearPaymentFilters;window.markAttendance=markAttendance;window.markAbsence=markAbsence;window.setAttendance=setAttendance;window.renderAttendanceRows=renderAttendanceRows;window.showAttendanceCalendar=showAttendanceCalendar;window.changeProfileAttendanceMonth=changeProfileAttendanceMonth;window.setStudentRetired=setStudentRetired;window.addInvoiceField=addInvoiceField;window.toggleInvoiceField=toggleInvoiceField;window.removeInvoiceField=removeInvoiceField;window.salonFilter=salonFilter;window.renderSalonFilter=renderSalonFilter;window.setSalonStatusFilter=setSalonStatusFilter;window.clearSalonFilters=clearSalonFilters;window.selectStudentFromSalon=selectStudentFromSalon;window.backup=backup;window.openAdvisorProfile=openAdvisorProfile;window.openStudentFromAdvisor=openStudentFromAdvisor;window.openPreStudentForm=openPreStudentForm;window.savePreStudent=savePreStudent;window.approvePreStudent=approvePreStudent;window.deletePreStudent=deletePreStudent;window.addCatalogItem=addCatalogItem;window.removeCatalogItem=removeCatalogItem;window.addCustomField=addCustomField;window.removeCustomField=removeCustomField;window.saveBrandName=saveBrandName;window.handleLogoUpload=handleLogoUpload;window.removeLogo=removeLogo;window.openDisciplineActForm=openDisciplineActForm;window.refreshDisciplineActForm=refreshDisciplineActForm;window.saveDisciplineAct=saveDisciplineAct;window.viewDisciplineAct=viewDisciplineAct;window.printDisciplineAct=printDisciplineAct;window.renderDisciplineRows=renderDisciplineRows;window.clearPreFilters=clearPreFilters;window.closeStudentProfile=closeStudentProfile;window.addEstablishedRow=addEstablishedRow;window.removeEstablishedRow=removeEstablishedRow;window.saveEstablishedPayments=saveEstablishedPayments;window.previewChange=previewChange;window.renderPreinscriptionRows=renderPreinscriptionRows;window.showView=v=>{state.view=v;document.querySelector(`.nav[data-view="${v}"]`)?.click()};init();
-// Cargar la lista de estudiantes desde la base de datos en la nube
-async function cargarEstudiantes() {
   try {
-    const res = await fetch('/api/estudiantes');
-    const estudiantes = await res.json();
-    console.log('Estudiantes en la nube:', estudiantes);
-    
-    // AQUÍ: Usa la variable 'estudiantes' para renderizar tu tabla/HTML
-    // Ejemplo: renderizarTabla(estudiantes);
+    // Cargar estudiantes y asistencias en paralelo desde Supabase
+    const [estudiantesData, asistenciasData] = await Promise.all([
+      obtenerEstudiantes(),
+      obtenerAsistencias()
+    ]);
+
+    state.estudiantes = estudiantesData || [];
+    state.asistencias = asistenciasData || [];
+    state.cargando = false;
+
+    console.log('Datos cargados exitosamente de Supabase.');
+    renderUI();
   } catch (error) {
-    console.error('Error cargando estudiantes:', error);
+    console.error('Error al inicializar la aplicación:', error);
+    state.cargando = false;
   }
 }
 
-// Guardar un estudiante en la base de datos en la nube
-async function guardarEstudiante(nombre, documento) {
+/**
+ * Registrar un nuevo estudiante
+ */
+export async function handleGuardarEstudiante(estudianteForm) {
   try {
-    const res = await fetch('/api/estudiantes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ full_name: nombre, document_type: documento })
-    });
-    
-    if (res.ok) {
-      console.log('Estudiante guardado con éxito');
-      cargarEstudiantes(); // Recargar la lista automáticamente
+    const nuevoEstudiante = {
+      name: estudianteForm.name,
+      document: estudianteForm.document,
+      program: estudianteForm.program || 'General',
+      phone: estudianteForm.phone || '',
+      status: estudianteForm.status || 'activo'
+    };
+
+    // Guardar en Supabase
+    const guardado = await guardarEstudiante(nuevoEstudiante);
+
+    if (guardado) {
+      // Actualizar el estado local y redibujar
+      state.estudiantes.push(guardado[0] || guardado);
+      renderUI();
+      return true;
     }
   } catch (error) {
-    console.error('Error guardando estudiante:', error);
+    alert('Error al guardar el estudiante en Supabase: ' + error.message);
+    return false;
   }
 }
 
-// Ejecutar al cargar la página
-document.addEventListener('DOMContentLoaded', cargarEstudiantes);async function cargarEstudiantes() {
+/**
+ * Registrar una asistencia
+ */
+export async function handleGuardarAsistencia(asistenciaForm) {
   try {
-    const res = await fetch('/api/estudiantes');
-    const estudiantes = await res.json();
-    
-    // 1. Limpiar el contenedor o tabla
-    const contenedor = document.getElementById('lista-estudiantes'); // Usa el ID de tu tabla/contenedor
-    if (!contenedor) return;
-    contenedor.innerHTML = '';
+    const nuevaAsistencia = {
+      student_id: asistenciaForm.studentId,
+      date: asistenciaForm.date || new Date().toISOString().split('T')[0],
+      status: asistenciaForm.status || 'presente',
+      salon: asistenciaForm.salon || ''
+    };
 
-    // 2. Dibujar cada estudiante usando los nombres de la DB (full_name)
-    estudiantes.forEach(est => {
-      const fila = document.createElement('tr'); // o div según tu diseño
-      fila.innerHTML = `
-        <td>${est.full_name}</td>
-        <td>${est.document_type || 'N/A'}</td>
-      `;
-      contenedor.appendChild(fila);
-    });
+    // Guardar en Supabase
+    const guardada = await guardarAsistencia(nuevaAsistencia);
 
+    if (guardada) {
+      state.asistencias.push(guardada[0] || guardada);
+      renderUI();
+      return true;
+    }
   } catch (error) {
-    console.error('Error cargando estudiantes:', error);
+    alert('Error al registrar la asistencia en Supabase: ' + error.message);
+    return false;
   }
 }
+
+/**
+ * Eliminar un estudiante por ID
+ */
+export async function handleEliminarEstudiante(id) {
+  if (!confirm('¿Seguro que deseas eliminar este estudiante?')) return;
+
+  try {
+    const exito = await eliminarEstudiante(id);
+    if (exito) {
+      state.estudiantes = state.estudiantes.filter(est => est.id !== id);
+      renderUI();
+    }
+  } catch (error) {
+    alert('No se pudo eliminar el estudiante de Supabase.');
+  }
+}
+
+/**
+ * Función encargada de renderizar la vista
+ */
+function renderUI() {
+  if (state.cargando) {
+    console.log('Renderizando vista de carga...');
+    return;
+  }
+
+  // Aquí ejecutas tus funciones de renderizado del DOM de app.js
+  // Ejemplo: renderTablaEstudiantes(state.estudiantes);
+  console.log('Lista actual de estudiantes:', state.estudiantes);
+}
+
+// Ejecutar inicialización al cargar la ventana
+window.addEventListener('DOMContentLoaded', initApp);

@@ -1,22 +1,28 @@
-import { sql } from '@vercel/postgres';
+import { supabase } from './supabase.js'
 
-export default async function handler(request, response) {
-  try {
-    if (request.method === 'GET') {
-      const { rows } = await sql`SELECT * FROM students ORDER BY created_at DESC;`;
-      return response.status(200).json(rows);
-    } 
-    
-    if (request.method === 'POST') {
-      const { full_name, document_type } = request.body;
-      const { rows } = await sql`
-        INSERT INTO students (full_name, document_type) 
-        VALUES (${full_name}, ${document_type}) 
-        RETURNING *;
-      `;
-      return response.status(200).json(rows[0]);
-    }
-  } catch (error) {
-    return response.status(500).json({ error: error.message });
+// Obtener todos los estudiantes desde Supabase
+export async function obtenerEstudiantes() {
+  const { data, error } = await supabase
+    .from('estudiantes')
+    .select('*')
+  
+  if (error) {
+    console.error('Error al cargar estudiantes:', error)
+    return []
   }
+  return data
+}
+
+// Guardar un estudiante en Supabase
+export async function guardarEstudiante(estudiante) {
+  const { data, error } = await supabase
+    .from('estudiantes')
+    .insert([estudiante])
+    .select()
+
+  if (error) {
+    console.error('Error al guardar estudiante:', error)
+    throw error
+  }
+  return data
 }
