@@ -1,30 +1,37 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Reemplazar el formulario con un clon limpio para eliminar todos los listeners antiguos de localStorage
-  const formViejo = document.querySelector("form") || document.getElementById("formEstudiante");
-  if (!formViejo) return;
+  const form = document.querySelector("form") || document.getElementById("formEstudiante");
+  if (!form) return;
 
-  const form = formViejo.cloneNode(true);
-  formViejo.parentNode.replaceChild(form, formViejo);
+  const formLimpio = form.cloneNode(true);
+  form.parentNode.replaceChild(formLimpio, form);
 
-  form.addEventListener("submit", async (e) => {
+  formLimpio.addEventListener("submit", async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Captura automática de campos
-    const inputs = form.querySelectorAll("input, select, textarea");
-    const datos = {};
-    inputs.forEach(input => {
-      const key = input.name || input.id;
-      if (key) datos[key] = input.value;
-    });
+    const inputs = Array.from(formLimpio.querySelectorAll("input:not([type="submit"]), select, textarea"));
 
-    if (typeof guardarEstudiante === "function") {
-      const res = await guardarEstudiante(datos);
-      if (res && res.success) {
-        form.reset();
+    const valName = inputs.find(i => /nombre|name/i.test(i.id || i.name))?.value || inputs[0]?.value || "";
+    const valDoc = inputs.find(i => /doc|cedula|ident/i.test(i.id || i.name))?.value || inputs[1]?.value || "";
+    const valProg = inputs.find(i => /prog|curso|carrera/i.test(i.id || i.name))?.value || inputs[2]?.value || "";
+
+    const estudiante = {
+      id: "est_" + Date.now(),
+      name: valName,
+      document: valDoc,
+      program: valProg
+    };
+
+    if (window.supabaseClient) {
+      const { data, error } = await window.supabaseClient.from("estudiantes").insert([estudiante]);
+      if (error) {
+        alert("Error al guardar en Supabase: " + error.message);
+      } else {
+        alert("¡ÉXITO! Guardado en la nube para todos.");
+        formLimpio.reset();
       }
     } else {
-      alert("Error: Supabase no está cargado correctamente.");
+      alert("Error: Supabase no está conectado.");
     }
   });
 });
