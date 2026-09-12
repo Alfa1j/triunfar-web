@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TRIUNFAR | Sistema Administrativo</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="shield">◆</div><div><small>INSTITUTO TÉCNICO</small><strong>TRIUNFAR</strong><em>Formamos tu futuro</em></div></div>
+    <nav>
+      <button class="nav active" data-view="dashboard">⌂ <span>Dashboard</span></button>
+      <button class="nav" data-view="students">♙ <span>Estudiantes</span></button>
+      <button class="nav" data-view="payments">＄ <span>Pagos y Finanzas</span></button>
+      <button class="nav" data-view="salonFilter">▤ <span>Filtro de salón</span></button>
+      <button class="nav" data-view="advisors">♧ <span>Asesores</span></button>
+      <button class="nav" data-view="preinscription">📝 <span>Pre inscripción</span></button>
+      <button class="nav" data-view="academic">▣ <span>Pagos establecidos</span></button>
+      <button class="nav" data-view="attendance">✓ <span>Asistencia</span></button>
+      <button class="nav" data-view="schedule">▦ <span>Horarios y Cronograma</span></button>
+      <button class="nav" data-view="discipline">⚠ <span>Disciplina</span></button>
+      <button class="nav" data-view="expenses">◔ <span>Gastos</span></button>
+      <button class="nav" data-view="reports">▥ <span>Reportes</span></button>
+      <button class="nav" data-view="settings">⚙ <span>Configuración</span></button>
+    </nav>
+    <div class="sidebar-foot"><b>TRIUNFAR 1.0</b><span>Prototipo funcional</span></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu" id="menuBtn">☰</button>
+      <div><h1 id="pageTitle">Dashboard</h1><p id="pageSub">Resumen general del Instituto Técnico Triunfar</p></div>
+      <div class="top-actions"><button id="backupBtn">☁ Copia</button><button>🔔</button><div class="avatar">EM</div><div><b>Euder Mejía</b><small>Administrador</small></div><button id="logoutBtn" class="secondary" onclick="logout()">↪ Cerrar sesión</button></div>
+    </header>
+    <section id="content"></section>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden"><div class="modal-card" id="modalCard"></div></div>
+<div id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
