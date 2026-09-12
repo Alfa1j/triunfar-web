@@ -525,4 +525,27 @@ async function guardarEstudiante(nombre, documento) {
 }
 
 // Ejecutar al cargar la página
-document.addEventListener('DOMContentLoaded', cargarEstudiantes);
+document.addEventListener('DOMContentLoaded', cargarEstudiantes);async function cargarEstudiantes() {
+  try {
+    const res = await fetch('/api/estudiantes');
+    const estudiantes = await res.json();
+    
+    // 1. Limpiar el contenedor o tabla
+    const contenedor = document.getElementById('lista-estudiantes'); // Usa el ID de tu tabla/contenedor
+    if (!contenedor) return;
+    contenedor.innerHTML = '';
+
+    // 2. Dibujar cada estudiante usando los nombres de la DB (full_name)
+    estudiantes.forEach(est => {
+      const fila = document.createElement('tr'); // o div según tu diseño
+      fila.innerHTML = `
+        <td>${est.full_name}</td>
+        <td>${est.document_type || 'N/A'}</td>
+      `;
+      contenedor.appendChild(fila);
+    });
+
+  } catch (error) {
+    console.error('Error cargando estudiantes:', error);
+  }
+}
