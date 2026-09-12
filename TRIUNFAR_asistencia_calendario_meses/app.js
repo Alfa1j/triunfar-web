@@ -492,3 +492,37 @@ function exportPayments(){const rows=[['Fecha','Estudiante','Concepto','Método'
 function backup(){const data={students:state.students,payments:state.payments,expenses:state.expenses,catalogs,customStudentFields:customFields,invoiceFields,preinscriptions:state.preinscriptions,disciplineActs:state.disciplineActs,attendance:state.attendance,branding:state.branding,createdAt:new Date().toISOString()};download(`TRIUNFAR_BACKUP_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(data,null,2),'application/json');toast('Copia de seguridad descargada')}
 function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
 function openModal(x){$('#modalCard').innerHTML=x;$('#modal').classList.remove('hidden')}function closeModal(){$('#modal').classList.add('hidden')}window.closeModal=closeModal;window.login=login;window.logout=logout;window.openUserForm=openUserForm;window.saveUser=saveUser;window.deleteUser=deleteUser;window.editPayment=editPayment;window.deletePayment=deletePayment;window.openStudentForm=openStudentForm;window.saveStudent=saveStudent;window.selectStudent=selectStudent;window.openPaymentForm=openPaymentForm;window.savePayment=savePayment;window.openExpenseForm=openExpenseForm;window.saveExpense=saveExpense;window.editStudent=editStudent;window.receipt=receipt;window.showReceiptForPayment=showReceiptForPayment;window.exportPayments=exportPayments;window.renderPaymentFilters=renderPaymentFilters;window.clearPaymentFilters=clearPaymentFilters;window.markAttendance=markAttendance;window.markAbsence=markAbsence;window.setAttendance=setAttendance;window.renderAttendanceRows=renderAttendanceRows;window.showAttendanceCalendar=showAttendanceCalendar;window.changeProfileAttendanceMonth=changeProfileAttendanceMonth;window.setStudentRetired=setStudentRetired;window.addInvoiceField=addInvoiceField;window.toggleInvoiceField=toggleInvoiceField;window.removeInvoiceField=removeInvoiceField;window.salonFilter=salonFilter;window.renderSalonFilter=renderSalonFilter;window.setSalonStatusFilter=setSalonStatusFilter;window.clearSalonFilters=clearSalonFilters;window.selectStudentFromSalon=selectStudentFromSalon;window.backup=backup;window.openAdvisorProfile=openAdvisorProfile;window.openStudentFromAdvisor=openStudentFromAdvisor;window.openPreStudentForm=openPreStudentForm;window.savePreStudent=savePreStudent;window.approvePreStudent=approvePreStudent;window.deletePreStudent=deletePreStudent;window.addCatalogItem=addCatalogItem;window.removeCatalogItem=removeCatalogItem;window.addCustomField=addCustomField;window.removeCustomField=removeCustomField;window.saveBrandName=saveBrandName;window.handleLogoUpload=handleLogoUpload;window.removeLogo=removeLogo;window.openDisciplineActForm=openDisciplineActForm;window.refreshDisciplineActForm=refreshDisciplineActForm;window.saveDisciplineAct=saveDisciplineAct;window.viewDisciplineAct=viewDisciplineAct;window.printDisciplineAct=printDisciplineAct;window.renderDisciplineRows=renderDisciplineRows;window.clearPreFilters=clearPreFilters;window.closeStudentProfile=closeStudentProfile;window.addEstablishedRow=addEstablishedRow;window.removeEstablishedRow=removeEstablishedRow;window.saveEstablishedPayments=saveEstablishedPayments;window.previewChange=previewChange;window.renderPreinscriptionRows=renderPreinscriptionRows;window.showView=v=>{state.view=v;document.querySelector(`.nav[data-view="${v}"]`)?.click()};init();
+// Cargar la lista de estudiantes desde la base de datos en la nube
+async function cargarEstudiantes() {
+  try {
+    const res = await fetch('/api/estudiantes');
+    const estudiantes = await res.json();
+    console.log('Estudiantes en la nube:', estudiantes);
+    
+    // AQUÍ: Usa la variable 'estudiantes' para renderizar tu tabla/HTML
+    // Ejemplo: renderizarTabla(estudiantes);
+  } catch (error) {
+    console.error('Error cargando estudiantes:', error);
+  }
+}
+
+// Guardar un estudiante en la base de datos en la nube
+async function guardarEstudiante(nombre, documento) {
+  try {
+    const res = await fetch('/api/estudiantes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: nombre, document_type: documento })
+    });
+    
+    if (res.ok) {
+      console.log('Estudiante guardado con éxito');
+      cargarEstudiantes(); // Recargar la lista automáticamente
+    }
+  } catch (error) {
+    console.error('Error guardando estudiante:', error);
+  }
+}
+
+// Ejecutar al cargar la página
+document.addEventListener('DOMContentLoaded', cargarEstudiantes);
