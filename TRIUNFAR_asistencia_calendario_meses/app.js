@@ -4,7 +4,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      
+      e.stopPropagation();
+
       const inputs = form.querySelectorAll("input, select");
       const datos = {};
       inputs.forEach(input => {
@@ -13,7 +14,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      await guardarEstudiante(datos);
+      if (typeof guardarEstudiante === "function") {
+        const res = await guardarEstudiante(datos);
+        if (res && res.success) {
+          form.reset();
+        }
+      } else {
+        alert("Error: La librería de Supabase no cargó correctamente.");
+      }
     });
   }
 });
