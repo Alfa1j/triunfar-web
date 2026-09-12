@@ -1,3 +1,34 @@
+// --- INICIALIZACIÓN SUPABASE ---
+const SUPABASE_URL = 'https://jxasvmqoklgygomfsbkf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_v3pcHK0pMu413T9A6UCbmA_CqEeKR7w';
+
+let supabaseClient = null;
+if (typeof supabase !== 'undefined') {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
+
+async function guardarEnSupabase(tipoEvento, datosObjeto) {
+  if (!supabaseClient) {
+    console.error('Supabase no está inicializado.');
+    return;
+  }
+  const { data, error } = await supabaseClient
+    .from('registros')
+    .insert([{ tipo_evento: tipoEvento, datos: datosObjeto }]);
+
+  if (error) {
+    console.error('Error guardando en Supabase:', error);
+  } else {
+    console.log('¡Guardado en Supabase!', data);
+  }
+}
+// -------------------------------
+
+
+
+
+
+
 document.addEventListener("DOMContentLoaded", () => {
   // Conectar con el botón de "+ Nuevo estudiante" o el modal si existe
   document.addEventListener("submit", async (e) => {
