@@ -1,58 +1,64 @@
-// Interceptor global directo para asegurar el guardado en Neon
-window.addEventListener("click", async (e) => {
-  const target = e.target;
-  
-  // Detecta si el elemento cliqueado o su contenedor es un botón de guardar/crear
-  const btn = target.closest("button") || target.closest("input[type='submit']") || target.closest(".btn");
-  if (!btn) return;
+(function () {
+  console.log("🚀 Interceptor Neon PostgreSQL activado correctamente.");
 
-  const textoBtn = (btn.innerText || btn.value || "").toLowerCase().trim();
+  // 1. Atrapar guardados automáticos en localStorage (Base de la App)
+  const originalSetItem = localStorage.setItem;
+  localStorage.setItem = function (key, value) {
+    originalSetItem.apply(this, arguments);
 
-  // Se activa con cualquier botón que diga guardar, registrar, crear o aceptar
-  if (
-    textoBtn.includes("guardar") || 
-    textoBtn.includes("crear") || 
-    textoBtn.includes("registrar") || 
-    textoBtn.includes("aceptar")
-  ) {
-    // Buscar todos los inputs visibles en la pantalla actual o modal activo
-    const inputs = Array.from(document.querySelectorAll("input:not([type='hidden']):not([type='submit']), select, textarea"))
-      .filter(input => input.offsetWidth > 0 && input.offsetHeight > 0);
-
-    if (inputs.length === 0) return;
-
-    // Tomar los valores ingresados
-    const datosFormulario = {};
-    inputs.forEach((input, index) => {
-      const clave = input.name || input.id || input.placeholder || `campo_${index + 1}`;
-      if (input.value.trim() !== "") {
-        datosFormulario[clave] = input.value.trim();
+    // Si la aplicación guarda algo en localStorage, lo mandamos a Neon
+    if (value && (value.includes("name") || value.includes("document") || value.includes("program") || key.includes("estudiante"))) {
+      try {
+        const datos = JSON.parse(value);
+        enviarANeon(datos);
+      } catch (e) {
+        enviarANeon({ clave: key, valor: value });
       }
-    });
+    }
+  };
 
-    // Validar que al menos haya algún dato diligenciado
-    if (Object.keys(datosFormulario).length === 0) return;
+  // 2. Escuchar clics en el botón de guardar
+  document.addEventListener("click", (e) => {
+    const target = e.target;
+    if (!target) return;
+    
+    const esBoton = target.tagName === "BUTTON" || target.closest("button") || target.tagName === "INPUT";
+    if (!esBoton) return;
 
-    console.log("Enviando datos a Neon:", datosFormulario);
+    const texto = (target.innerText || target.value || "").toLowerCase();
+    if (texto.includes("guardar") || texto.includes("crear") || texto.includes("aceptar")) {
+      setTimeout(() => {
+        const inputs = document.querySelectorAll("input, select");
+        const datos = {};
+        inputs.forEach((input, i) => {
+          if (input.value.trim() && input.type !== "submit" && input.type !== "hidden") {
+            const nombreCampo = input.name || input.id || input.placeholder || `campo_${i}`;
+            datos[nombreCampo] = input.value.trim();
+          }
+        });
 
+        if (Object.keys(datos).length > 0) {
+          enviarANeon(datos);
+        }
+      }, 200);
+    }
+  }, true);
+
+  // Función principal para enviar a Neon
+  async function enviarANeon(objetoDatos) {
     try {
-      const respuesta = await fetch('/api/guardar', {
+      console.log("📤 Enviando registro a Neon...", objetoDatos);
+      const res = await fetch('/api/guardar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datosFormulario)
+        body: JSON.stringify(objetoDatos)
       });
-
-      const resultado = await respuesta.json();
-
-      if (respuesta.ok && resultado.success) {
-        alert("¡ÉXITO! Guardado directamente en Neon PostgreSQL.");
-        window.location.reload();
-      } else {
-        alert("Error en el servidor Neon: " + (resultado.error || "No se pudo insertar"));
+      const resJson = await res.json();
+      if (resJson.success) {
+        console.log("✅ ÉXITO EN NEON:", resJson);
       }
     } catch (err) {
-      console.error("Error al conectar con la API:", err);
-      alert("Error de conexión al guardar.");
+      console.error("❌ Error al enviar a Neon:", err);
     }
   }
-}, true); // UseCapture activado para adelantarse a cualquier otro script de la página
+})();
