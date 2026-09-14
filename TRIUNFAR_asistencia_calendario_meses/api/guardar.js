@@ -1,25 +1,28 @@
-import { Client } from 'pg';
+import { NeonConfig, Pool } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
-    await client.connect();
-    // Cambiado a la tabla 'registros'
-    const query = 'INSERT INTO registros (datos) VALUES ($1) RETURNING *;';
-    const result = await client.query(query, [JSON.stringify(req.body)]);
-    await client.end();
+    const { id, nombre, documento, programa } = req.body;
 
-    return res.status(200).json({ success: true, data: result.rows[0] });
+    const query = `
+      INSERT INTO registros (id, nombre, documento, programa)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (id) DO UPDATE 
+      SET nombre = EXCLUDED.nombre, documento = EXCLUDED.documento, programa = EXCLUDED.programa;
+    `;
+
+    await pool.query(query, [id, nombre, documento, programa]);
+    await pool.end();
+
+    return res.status(200).json({ success: true, message: 'Guardado en Neon' });
   } catch (error) {
-    if (client) await client.end();
-    return res.status(500).json({ error: error.message });
+    console.error("Error Postgres:", error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
