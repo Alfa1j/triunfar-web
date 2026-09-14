@@ -1,36 +1,5 @@
-// --- INICIALIZACIÓN SUPABASE ---
-const SUPABASE_URL = 'https://jxasvmqoklgygomfsbkf.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_v3pcHK0pMu413T9A6UCbmA_CqEeKR7w';
-
-let supabaseClient = null;
-if (typeof supabase !== 'undefined') {
-  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-}
-
-async function guardarEnSupabase(tipoEvento, datosObjeto) {
-  if (!supabaseClient) {
-    console.error('Supabase no está inicializado.');
-    return;
-  }
-  const { data, error } = await supabaseClient
-    .from('registros')
-    .insert([{ tipo_evento: tipoEvento, datos: datosObjeto }]);
-
-  if (error) {
-    console.error('Error guardando en Supabase:', error);
-  } else {
-    console.log('¡Guardado en Supabase!', data);
-  }
-}
-// -------------------------------
-
-
-
-
-
-
 document.addEventListener("DOMContentLoaded", () => {
-  // Conectar con el botón de "+ Nuevo estudiante" o el modal si existe
+  // Escuchar el evento submit del formulario de estudiantes
   document.addEventListener("submit", async (e) => {
     const form = e.target;
     if (!form) return;
@@ -39,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     e.stopPropagation();
 
     // Obtener todos los inputs visibles del formulario activo
-    const inputs = Array.from(form.querySelectorAll("input:not([type="submit"]):not([type="hidden"]), select, textarea"));
+    const inputs = Array.from(form.querySelectorAll("input:not([type='submit']):not([type='hidden']), select, textarea"));
 
     if (inputs.length < 2) return;
 
@@ -60,17 +29,28 @@ document.addEventListener("DOMContentLoaded", () => {
       program: valProg
     };
 
-    if (window.supabaseClient) {
-      const { data, error } = await window.supabaseClient.from("estudiantes").insert([estudiante]);
-      if (error) {
-        alert("Error al guardar en Supabase: " + error.message);
-      } else {
-        alert("¡ÉXITO! Guardado en la nube para todos.");
+    try {
+      // Enviar los datos a la API Route de Neon PostgreSQL en Vercel
+      const respuesta = await fetch('/api/guardar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(estudiante)
+      });
+
+      const resultado = await respuesta.json();
+
+      if (respuesta.ok && resultado.success) {
+        alert("¡ÉXITO! Guardado en Neon PostgreSQL.");
         form.reset();
         window.location.reload();
+      } else {
+        alert("Error al guardar en Neon: " + (resultado.error || "Error en el servidor"));
       }
-    } else {
-      alert("Error: Supabase no está conectado.");
+    } catch (err) {
+      console.error("Error de red:", err);
+      alert("No se pudo conectar con el servidor.");
     }
   });
 });
