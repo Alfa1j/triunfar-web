@@ -12,7 +12,8 @@ export default async function handler(req, res) {
 
   try {
     await client.connect();
-    const query = 'INSERT INTO estudiantes (datos) VALUES ($1) RETURNING *;';
+    // Cambiado a la tabla 'registros'
+    const query = 'INSERT INTO registros (datos) VALUES ($1) RETURNING *;';
     const result = await client.query(query, [JSON.stringify(req.body)]);
     await client.end();
 
