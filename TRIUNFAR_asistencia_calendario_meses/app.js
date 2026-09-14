@@ -1,18 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Escuchar el evento submit del formulario de estudiantes
-  document.addEventListener("submit", async (e) => {
-    const form = e.target;
-    if (!form) return;
+  async function enviarDatos(form) {
+    const inputs = Array.from(
+      form.querySelectorAll("input:not([type='submit']):not([type='hidden']), select, textarea")
+    );
 
-    e.preventDefault();
-    e.stopPropagation();
+    if (inputs.length < 1) return;
 
-    // Obtener todos los inputs visibles del formulario activo
-    const inputs = Array.from(form.querySelectorAll("input:not([type='submit']):not([type='hidden']), select, textarea"));
-
-    if (inputs.length < 2) return;
-
-    // Asignar por posición de campo si no hay ID o name
     const valName = inputs[0] ? inputs[0].value.trim() : "";
     const valDoc = inputs[1] ? inputs[1].value.trim() : "";
     const valProg = inputs[2] ? inputs[2].value.trim() : "";
@@ -23,19 +16,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const estudiante = {
-      id: "est_" + Date.now(),
       name: valName,
       document: valDoc,
       program: valProg
     };
 
     try {
-      // Enviar los datos a la API Route de Neon PostgreSQL en Vercel
       const respuesta = await fetch('/api/guardar', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(estudiante)
       });
 
@@ -51,6 +40,28 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.error("Error de red:", err);
       alert("No se pudo conectar con el servidor.");
+    }
+  }
+
+  // Captura cuando el formulario emite el evento submit
+  document.addEventListener("submit", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    enviarDatos(e.target);
+  });
+
+  // Captura clics en botones de guardar dentro de modales
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    const textoBtn = btn.innerText ? btn.innerText.toLowerCase() : "";
+    if (textoBtn.includes("guardar") || textoBtn.includes("crear")) {
+      const form = btn.closest("form") || document.querySelector("form");
+      if (form) {
+        e.preventDefault();
+        enviarDatos(form);
+      }
     }
   });
 });
