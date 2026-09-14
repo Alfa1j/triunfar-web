@@ -1,52 +1,50 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TRIUNFAR | Sistema Administrativo</title>
-<link rel="stylesheet" href="styles.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>  
-  
-</head>
-<body>
-<div class="app">
-  <aside class="sidebar">
-    <div class="brand"><div class="shield">◆</div><div><small>INSTITUTO TÉCNICO</small><strong>TRIUNFAR</strong><em>Formamos tu futuro</em></div></div>
-    <nav>
-      <button class="nav active" data-view="dashboard">⌂ <span>Dashboard</span></button>
-      <button class="nav" data-view="students">♙ <span>Estudiantes</span></button>
-      <button class="nav" data-view="payments">＄ <span>Pagos y Finanzas</span></button>
-      <button class="nav" data-view="salonFilter">▤ <span>Filtro de salón</span></button>
-      <button class="nav" data-view="advisors">♧ <span>Asesores</span></button>
-      <button class="nav" data-view="preinscription">📝 <span>Pre inscripción</span></button>
-      <button class="nav" data-view="academic">▣ <span>Pagos establecidos</span></button>
-      <button class="nav" data-view="attendance">✓ <span>Asistencia</span></button>
-      <button class="nav" data-view="schedule">▦ <span>Horarios y Cronograma</span></button>
-      <button class="nav" data-view="discipline">⚠ <span>Disciplina</span></button>
-      <button class="nav" data-view="expenses">◔ <span>Gastos</span></button>
-      <button class="nav" data-view="reports">▥ <span>Reportes</span></button>
-      <button class="nav" data-view="settings">⚙ <span>Configuración</span></button>
-    </nav>
-    <div class="sidebar-foot"><b>TRIUNFAR 1.0</b><span>Prototipo funcional</span></div>
-  </aside>
+<script src="app.js"></script>
+  <script>
+    // Interceptor directo dentro de index.html
+    document.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button") || e.target.closest("input[type='submit']");
+      if (!btn) return;
 
-  <main class="main">
-    <header class="topbar">
-      <button class="menu" id="menuBtn">☰</button>
-      <div><h1 id="pageTitle">Dashboard</h1><p id="pageSub">Resumen general del Instituto Técnico Triunfar</p></div>
-      <div class="top-actions"><button id="backupBtn">☁ Copia</button><button>🔔</button><div class="avatar">EM</div><div><b>Euder Mejía</b><small>Administrador</small></div><button id="logoutBtn" class="secondary" onclick="logout()">↪ Cerrar sesión</button></div>
-    </header>
-    <section id="content"></section>
-  </main>
-</div>
+      const texto = (btn.innerText || btn.value || "").toLowerCase().trim();
 
-<div id="modal" class="modal hidden"><div class="modal-card" id="modalCard"></div></div>
-<div id="toast"></div>
+      if (texto.includes("guardar") || texto.includes("crear") || texto.includes("aceptar")) {
+        // Capturar los inputs del modal o formulario visible
+        setTimeout(async () => {
+          const inputs = Array.from(document.querySelectorAll("input:not([type='hidden']):not([type='submit']), select, textarea"))
+            .filter(input => input.offsetWidth > 0 && input.offsetHeight > 0);
 
+          if (inputs.length === 0) return;
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="api/supabase.js"></script>
-  <script src="api/estudiantes.js"></script>
-  <script src="app.js"></script>
+          const datos = {};
+          inputs.forEach((input, index) => {
+            if (input.value.trim() !== "") {
+              const clave = input.name || input.id || input.placeholder || `campo_${index + 1}`;
+              datos[clave] = input.value.trim();
+            }
+          });
+
+          if (Object.keys(datos).length > 0) {
+            try {
+              const respuesta = await fetch('/api/guardar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+              });
+
+              const resultado = await respuesta.json();
+              if (respuesta.ok && resultado.success) {
+                alert("¡ÉXITO! Guardado en Neon PostgreSQL.");
+                window.location.reload();
+              } else {
+                alert("Error en el servidor Neon: " + (resultado.error || "No se pudo guardar"));
+              }
+            } catch (err) {
+              console.error("Error al conectar con la API:", err);
+            }
+          }
+        }, 150);
+      }
+    }, true);
+  </script>
 </body>
 </html>
