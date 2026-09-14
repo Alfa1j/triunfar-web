@@ -1,31 +1,15 @@
-async function guardarEstudiante(estudiante) {
+// Agrega esta función dentro de api/estudiantes.js
+async function enviarANeonPostgreSQL(estudiante) {
   try {
-    const client = window.supabaseClient || window.supabase;
-    if (!client) {
-      alert("Error: El cliente de Supabase no se ha inicializado.");
-      return { success: false };
-    }
-
-    const payload = {
-      id: estudiante.id || "est_" + Date.now(),
-      name: estudiante.nombre || estudiante.name || "Sin nombre",
-      document: estudiante.documento || estudiante.document || "0",
-      program: estudiante.programa || estudiante.program || null
-    };
-
-    const { data, error } = await client
-      .from("estudiantes")
-      .upsert([payload]);
-
-    if (error) {
-      alert("Error Supabase: " + error.message);
-      return { success: false, error };
-    }
-
-    alert("¡ÉXITO! Guardado correctamente en Supabase.");
-    return { success: true, data };
+    await fetch('/api/guardar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(estudiante)
+    });
+    console.log("Enviado con éxito a Neon");
   } catch (err) {
-    alert("Error Inesperado: " + err.message);
-    return { success: false, error: err };
+    console.error("Error al enviar a Neon:", err);
   }
 }
+
+// Ejecuta enviarANeonPostgreSQL(nuevoEstudiante) justo cuando se crea el objeto del estudiante.
