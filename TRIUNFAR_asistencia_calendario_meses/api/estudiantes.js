@@ -1,15 +1,34 @@
-// Agrega esta función dentro de api/estudiantes.js
-async function enviarANeonPostgreSQL(estudiante) {
+async function guardarEstudiante(estudiante) {
   try {
-    await fetch('/api/guardar', {
+    const payload = {
+      id: estudiante.id || "est_" + Date.now(),
+      nombre: estudiante.nombre || estudiante.name || "Sin nombre",
+      documento: estudiante.documento || estudiante.document || "0",
+      programa: estudiante.programa || estudiante.program || null
+    };
+
+    console.log("Enviando a Neon PostgreSQL:", payload);
+
+    const response = await fetch('/api/guardar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(estudiante)
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
     });
-    console.log("Enviado con éxito a Neon");
-  } catch (err) {
-    console.error("Error al enviar a Neon:", err);
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      alert("¡ÉXITO! Guardado en Neon PostgreSQL.");
+      return { success: true, data };
+    } else {
+      alert("Error al guardar en Neon: " + (data.error || "Respuesta inválida"));
+      return { success: false, error: data.error };
+    }
+  } catch (error) {
+    console.error("Error conectando con /api/guardar:", error);
+    alert("Error de red al conectar con Neon PostgreSQL.");
+    return { success: false, error: error.message };
   }
 }
-
-// Ejecuta enviarANeonPostgreSQL(nuevoEstudiante) justo cuando se crea el objeto del estudiante.
