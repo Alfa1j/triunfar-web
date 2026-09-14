@@ -1,14 +1,18 @@
 async function guardarEstudiante(estudiante) {
   try {
+    // 1. Mapear los datos de la interfaz
     const payload = {
-      id: estudiante.id || "est_" + Date.now(),
-      nombre: estudiante.nombre || estudiante.name || "Sin nombre",
-      documento: estudiante.documento || estudiante.document || "0",
-      programa: estudiante.programa || estudiante.program || null
+      datos: {
+        id: estudiante.id || "est_" + Date.now(),
+        nombre: estudiante.nombre || estudiante.name || "Sin nombre",
+        documento: estudiante.documento || estudiante.document || "0",
+        programa: estudiante.programa || estudiante.program || null
+      }
     };
 
-    console.log("Enviando a Neon PostgreSQL:", payload);
+    console.log("Enviando a Neon PostgreSQL mediante /api/guardar...", payload);
 
+    // 2. Disparar la petición HTTP real
     const response = await fetch('/api/guardar', {
       method: 'POST',
       headers: {
